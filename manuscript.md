@@ -137,21 +137,21 @@ Some user code of components might look like this:
 
 ```c++
 struct Position {
-    float x, y, z; // could also be a vector value type, ala `glm::vec3`
+    float x, y; // could also be a vector value type, ala `glm::vec2`
 };
 
 struct Velocity {
-    float x, y, z;
+    float x, y;
 };
 ```
 
-Note that nothing here is related to our library yet. However, the fact users will be defining arbitrary types implies that we will need to use templates. What we want here is something along the following lines.
+Note that nothing here is related to our library yet. However, the fact users will be defining arbitrary types implies that we will need to use templates. What we want for each component here is something along the following lines.
 
 ```c++
-    std::unordered_map<Entity, Position> positions;
+std::unordered_map<Entity, Position> positions;
 ```
 
-We'll come back to optimizing the data structure later, for now we are merely concerned with making this work. The problem here is that we don't know what component types (the `Position`) the user will want, so we'll have to support arbitrary ones. To do this we will wrap the data in a "manager" and use inheritance and virtual functions to manage the actual components.
+We'll come back to why this is the right data structure, and optimizing it later, for now we are merely concerned with making this work. The problem here is that we don't know what component types (the `Position`) the user will want, so we'll have to support arbitrary ones. To do this we will wrap the data in a "manager" and use inheritance and virtual functions to manage the actual components.
 
 ```c++
 struct ComponentManagerBase {
@@ -166,7 +166,7 @@ struct ComponentManager : ComponentManagerBase {
 };
 ```
 
-Currently the only thing we need the `ComponentManagerBase` for is being able to properly destroy all the component data when the world is deleted. We can do this because the *user* will always know the types of the data they want.
+Currently the only thing we need the `ComponentManagerBase` for is being able to properly destroy all the component data when the world is deleted. We can do this because the *user* will always know the types of the data they want, and so they can simply access the concrete type. This also leaves the door open for user customized component managers.
 
 ```c++
 class World {
@@ -188,9 +188,9 @@ class World {
 
 We use a single function to both make and retrieve our component managers. This way users can be confident in using any type as components.
 
-(TODO:L footnote) One note is that our use of `typeid` will require run time type information. It is the opinion of the authors that built in run time type information is not a notable burden if used appropriately, and especially for smaller teams or the communication of information. However any reflection system that can provide a unique ID for a type will suffice for the purposes of this book.
+(TODO: footnote) One note is that our use of `typeid` will require run time type information. It is the opinion of the authors that built in run time type information is not a notable burden if used appropriately, especially for smaller teams. It's also useful as a standard way to communicate ideas, hence our use of it here. Any reflection system that can provide a unique ID for a type will suffice for the purposes of this book, feel free to use a custom one.
 
-This function is a relatively standard pattern of find and return, or make, insert, and return. We use the type as the key, and we use a shared pointer for safety and simplicity. Note that return the exact type of the component manager, even if we have downcast it, this is so the *user* can use the typed `ComponentManager` interface.
+This function is a relatively standard pattern of find and return, or make, insert, and return; the iterator is used to prevent duplicate lookups. We use the hashcode of the type as the key, and we use a shared pointer for safety and simplicity. Note that we return the exact type of the component manager, even if we have to downcast it, this is so the *user* can use the type specific `ComponentManager` interface.
 
 ```c++
 World world;
@@ -199,16 +199,16 @@ auto pos = world.requireComponent<Position>();
 auto vel = world.requireComponent<Velocity>();
 ```
 
-The user can now access the component managers, every `world.requireComponent<Position>()` will be the same manager and data. We now have a very straight forward ECS interface.
+The user can now access the component managers, every `world.requireComponent<Position>()` will be the same manager and data, so long as the world object is the same. We now have a very straight forward ECS interface.
 
 ```c++
 Entity e0 = world.newEntity();
-pos->values[e0] = { 0.0, 3.0, -1.0 };
+pos->values[e0] = { 0.0, 3.0 };
 Entity e1 = world.newEntity();
-pos->values[e1] = { 0.0, 3.0, -1.0 };
-vel->values[e1] = { 1.0, 0.0, 0.0 };
+pos->values[e1] = { 0.0, 3.0 };
+vel->values[e1] = { 1.0, 0.0 };
 Entity e2 = world.newEntity();
-vel->values[e2] = { 1.0, 0.0, 0.0 };
+vel->values[e2] = { 1.0, 0.0 };
 ```
 
 And with a quick helper method...
@@ -224,13 +224,13 @@ class World {
 
 ```c++
 for (auto e : world.allEntities()) {
-    std::cout << std::format("{:03}:   p<{:^12}>   v<{:^12}>", e,
-        (pos->values.contains(e)) ? std::format("{}, {}, {}", pos->values[e].x, pos->values[e].y, pos->values[e].z) : "_, _, _",
-        (vel->values.contains(e)) ? std::format("{}, {}, {}", vel->values[e].x, vel->values[e].y, vel->values[e].z) : "_, _, _"
+    std::cout << std::format("{:03}:   p<{:^8}>   v<{:^8}>", e,
+        (pos->values.contains(e)) ? std::format("{}, {}", pos->values[e].x, pos->values[e].y) : "_, _",
+        (vel->values.contains(e)) ? std::format("{}, {}", vel->values[e].x, vel->values[e].y) : "_, _"
     ) << std::endl;
 }
 ```
 
-The above display method is notably inefficient. While the `.contains()` method is useful, it's also very inefficient as a check for the existence of a component if the point is to then *use* that component. We'll work on fixing that up later.
+The above display method is notably inefficient. While the `.contains()` method is useful, it's also very inefficient as a check for the existence of a component if the point is to then *use* that component. Especially if we then look up the component more than once, this is why we re-used the iterator in `requireComponent()`. However, since thi sis user code, this is actually a library problem (since we don't provide a more convienet method), so we'll work on fixing this up later.
 
 ### Systems

@@ -4,6 +4,6 @@ The actual text can be [found here](manuscript.md), and the [library file `dsecs
 
 ### Notes
 
-The code is 500 lines (or less) as counted by [CLOC](https://github.com/AlDanial/cloc) which does not skip blank lines and comments.
+The code is 500 lines (or less) as counted by [CLOC](https://github.com/AlDanial/cloc) which does not count blank lines and comments as code.
 
 To run the example use `bazel run example`, to run tests (and display breakages) use `bazel test --test_output=errors //...`.

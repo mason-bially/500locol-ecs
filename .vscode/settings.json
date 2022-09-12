@@ -5,6 +5,10 @@
         "unordered_map": "cpp",
         "string": "cpp",
         "memory": "cpp",
-        "string_view": "cpp"
+        "string_view": "cpp",
+        "chrono": "cpp",
+        "future": "cpp",
+        "system_error": "cpp",
+        "xlocale": "cpp"
     }
 }

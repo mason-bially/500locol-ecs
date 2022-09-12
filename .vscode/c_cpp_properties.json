@@ -3,7 +3,8 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/bazel-500locol-ecs/external/catch/single_include"
             ],
             "defines": [
                 "_DEBUG",

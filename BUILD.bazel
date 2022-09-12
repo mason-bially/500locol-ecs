@@ -5,8 +5,22 @@ CPP20OPTS = select({
     ],
 })
 
+cc_library(
+    name = "dsecs",
+    hdrs = ["dsecs.hpp"],
+    copts = CPP20OPTS,
+)
+
+cc_test(
+    name = "test",
+    deps = [":dsecs", "@catch//:single_include"],
+    srcs = ["tests.cpp"],
+    copts = CPP20OPTS,
+)
+
 cc_binary(
     name = "example",
-    srcs = ["dsecs.cpp"],
+    deps = [":dsecs"],
+    srcs = ["example.cpp"],
     copts = CPP20OPTS,
 )

@@ -1,6 +1,6 @@
-This repository contains my attempt to write a 500 lines of code or less example of an Entity Component System (ECS). And then explain it in a format similar to the [The Architecture of Open Source Applications](http://aosabook.org/en/index.html) book by a similar name, since I find that format as a useful means of communication to compare myself against.
+This repository contains my attempt to write a 500 lines of code or less example of an Entity Component System (ECS) using post-modern C++ (`c++23`). And then explain it in a format similar to the [The Architecture of Open Source Applications](http://aosabook.org/en/index.html) book by a similar name, since I find that format as a useful means of communication to compare myself against.
 
-The actual text can be [found here](manuscript.md).
+The actual text can be [found here](manuscript.md), and the [library file `dsecs.hpp` here](dsecs.hpp).
 
 ### Notes
 

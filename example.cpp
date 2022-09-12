@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <format>
 #include "dsecs.hpp"
 
 struct Position
@@ -17,35 +18,35 @@ int main()
 {
     using namespace dsecs;
 
-    World w;
+    World world;
 
-    auto p = w.requireComponent<Position>();
-    auto v = w.requireComponent<Velocity>();
+    auto pos = world.requireComponent<Position>();
+    auto vel = world.requireComponent<Velocity>();
 
-    w.makeSystem("velocity", [=](World* w, auto c){
-        for (auto& [e, v] : v->components) {
-            p->doif(e, [=](auto& p) { p.x += v.x; });
+    world.makeSystem("velocity", [=](World* w, auto c){
+        for (auto& [e, v] : vel->values) {
+            pos->doif(e, [=](auto& p) { p.x += v.x; });
         }
     });
 
-    Entity e0 = w.newEntity();
-    p->components[e0] = { 0.0, 3.0, -1.0 };
-    Entity e1 = w.newEntity();
-    p->components[e1] = { 0.0, 3.0, -1.0 };
-    v->components[e1] = { 1.0, 0.0, 0.0 };
-    Entity e2 = w.newEntity();
-    v->components[e2] = { 1.0, 0.0, 0.0 };
+    Entity e0 = world.newEntity();
+    pos->values[e0] = { 0.0, 3.0, -1.0 };
+    Entity e1 = world.newEntity();
+    pos->values[e1] = { 0.0, 3.0, -1.0 };
+    vel->values[e1] = { 1.0, 0.0, 0.0 };
+    Entity e2 = world.newEntity();
+    vel->values[e2] = { 1.0, 0.0, 0.0 };
 
-    w.update();
-    w.update();
-    w.update();
-    w.update();
+    world.update();
+    world.update();
+    world.update();
+    world.update();
 
-    for (auto e : w.allEntities()) {
-        std::cout << e << ": ";
-        p->doif(e, [](auto p) { std::cout << p.x; });
-        v->doif(e, [](auto v) { std::cout << " has V!"; });
-        std::cout << std::endl;
+    for (auto e : world.allEntities()) {
+        std::cout << std::format("{:03}:   p<{:^12}>   v<{:^12}>", e,
+            (pos->values.contains(e)) ? std::format("{}, {}, {}", pos->values[e].x, pos->values[e].y, pos->values[e].z) : "_, _, _",
+            (vel->values.contains(e)) ? std::format("{}, {}, {}", vel->values[e].x, vel->values[e].y, vel->values[e].z) : "_, _, _"
+        ) << std::endl;
     }
 
     return 0;

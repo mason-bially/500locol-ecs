@@ -1,0 +1,12 @@
+CPP20OPTS = select({
+    "@bazel_tools//src/conditions:windows": ["/std:c++20"],
+    "//conditions:default": [
+        "-std=c++20",
+    ],
+})
+
+cc_binary(
+    name = "example",
+    srcs = ["dsecs.cpp"],
+    copts = CPP20OPTS,
+)

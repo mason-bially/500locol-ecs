@@ -1,0 +1,9 @@
+
+# dot files
+.DS_Store
+
+# bazel
+bazel-*
+
+# logs from runs
+/logs/

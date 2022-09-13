@@ -123,7 +123,7 @@ constexpr Entity NoEntity;
 Incidentally, due to our use of C++, this works already:
 
 ```c++
-Entity e = world.find("nothing");
+Entity e = findEntity("nothing"); // assuming this method existed
 if (e) {
 
 }
@@ -143,15 +143,28 @@ struct Position {
 struct Velocity {
     float x, y;
 };
+
+struct Acceleration {
+    float x, y;
+};
 ```
 
-Note that nothing here is related to our library yet. However, the fact users will be defining arbitrary types implies that we will need to use templates. What we want for each component here is something along the following lines.
+Note that this would be user code and not library code. What we want for each user defined component is something along the following lines.
 
 ```c++
-std::unordered_map<Entity, Position> positions;
+#include <unordered_map>
+
+class EgWorld {
+    public:
+        std::unordered_map<Entity, Position> positions;
+        std::unordered_map<Entity, Velocity> velocities;
+        std::unordered_map<Entity, Acceleration> accelerations;
+}
 ```
 
-We'll come back to why this is the right data structure, and optimizing it later, for now we are merely concerned with making this work. The problem here is that we don't know what component types (the `Position`) the user will want, so we'll have to support arbitrary ones. To do this we will wrap the data in a "manager" and use inheritance and virtual functions to manage the actual components.
+A struct of arrays, and we are using `std::unordered_map` in the place of an array this time. We'll come back to why this is the right data structure, and optimizing it further later, but for now we are merely concerned with making this work.
+
+The problem here is that we don't know what component types (the `Position`) the user will want. We want users to be able to create arbitrary components using their own `struct` definitions. To do this we will need to manage the storage of components at runtime, dynamically creating the structure containing the arrays. And because it involves user defined input types, we'll also need to use templates.
 
 ```c++
 struct ComponentManagerBase {
@@ -160,17 +173,23 @@ struct ComponentManagerBase {
 
 template<typename TComp>
 struct ComponentManager : ComponentManagerBase {
-    std::unordered_map<Entity, TComp> values;
+    std::unordered_map<Entity, TComp> values; // the actual array
 
     virtual ~ComponentManager() = default;
 };
 ```
 
-Currently the only thing we need the `ComponentManagerBase` for is being able to properly destroy all the component data when the world is deleted. We can do this because the *user* will always know the types of the data they want, and so they can simply access the concrete type. This also leaves the door open for user customized component managers.
+These managers represent one array field in the dynamic structure.
+
+The design of the "manager" here uses inheritance and virtual functions to manage the actual components in a polymorphic way. Currently the only thing we need the `ComponentManagerBase` for is being able to properly destroy all the component data when the world is deleted. We can do this because the *user* will always know the types of the data they want, and so they can simply access the concrete type. This also leaves the door open for user customized component managers.
+
+Now we can make the actual dynamic structure of arrays.
 
 ```c++
+#include <memory>
+
 class World {
-        std::unordered_map<size_t, std::shared_ptr<ComponentManagerBase>> _components;
+        std::unordered_map<size_t, std::shared_ptr<ComponentManagerBase>> _components; // the dynamic structure
     public:
         template<typename TComp>
         auto requireComponent() -> std::shared_ptr<ComponentManager<TComp>> {
@@ -214,6 +233,8 @@ vel->values[e2] = { 1.0, 0.0 };
 And with a quick helper method...
 
 ```c++
+#include <ranges>
+
 class World {
     public:
         auto allEntities() { return std::ranges::iota_view(1u, _nextEntity); }
@@ -231,6 +252,66 @@ for (auto e : world.allEntities()) {
 }
 ```
 
-The above display method is notably inefficient. While the `.contains()` method is useful, it's also very inefficient as a check for the existence of a component if the point is to then *use* that component. Especially if we then look up the component more than once, this is why we re-used the iterator in `requireComponent()`. However, since thi sis user code, this is actually a library problem (since we don't provide a more convienet method), so we'll work on fixing this up later.
+The above display method is notably inefficient. While the `.contains()` method is useful, it's also very inefficient as a check for the existence of a component if the point is to then *use* that component. Especially if we then look up the component more than once, this is why we re-used the iterator in `requireComponent()`. However, since this is user code, this is actually a library problem (since we don't provide a more convenient method), so we'll work on fixing this up later.
 
 ### Systems
+
+Systems are the chunks of logic we want our ECS to run. Specifically the logic that runs across the entire world. Logic that happens in response to triggers, like input or network events, are generally done outside of the world, using the API and an external entity variable to "randomly access" the relevant components. And while plenty of ECS libraries to provide mechanisms for this, it is not the strength of the paradigm, and we will not be adding them.
+
+Some user code of systems might look like this:
+
+```c++
+class VelocitySystem : SystemBase {
+        std::shared_ptr<ComponentManager<Velocity>> _vel;
+        std::shared_ptr<ComponentManager<Position>> _pos;
+    public:
+        VelocitySystem(World* w)
+            : _vel(w->requireComponent<Velocity>()), _pos(w->requireComponent<Position>()) { }
+
+        virtual void update() override { // the dispatched method
+            for (auto& [e, v] : _vel->values) { // the iteration
+                if (_pos->values.contains(e)) {
+                    auto p& = _pos->values[e];
+                    p.x += v.x;
+                    p.y += v.y;
+                }
+            }
+        }
+}
+```
+
+There are some issues with this user code, and we should be looking to simplify it with our library if we can. The constructor and variable definitions are especially egregious examples of boilerplate. But we also see a repeated lookup of our component values again. 
+
+Anyway, what we want for the library is to then have something like this.
+
+```c++
+class EgWorld {
+        VelocitySystem _velocitySystem;
+        AccelerationSystem _accelerationSystem;
+    public:
+        void update() {
+            _velocitySystem.update();
+            _accelerationSystem.update();
+        }
+}
+```
+
+A dispatches of iteration. Again, like with components, we want to make this a dynamic dispatch list. We already have a way to do that, so we can start by simplifying this and defining our base class.
+
+```c++
+struct SystemBase {
+    virtual ~SystemManagerBase() = default;
+
+    virtual void update(class World* w) = 0;
+};
+
+class World {
+        std::vector<std::shared_ptr<SystemBase>> _systems;
+    public:
+        void update() {
+            for (auto sys : _systems) {
+                sys->update(this);
+            }
+        }
+}
+```

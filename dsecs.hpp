@@ -1,13 +1,18 @@
 
 #include <memory>
-#include <string>
 #include <unordered_map>
 #include <ranges>
+#include <vector>
+#include <string>
 
 // dead simple ecs
 namespace dsecs {
+    /* entity helpers */
+
     using Entity = uint64_t;
     constexpr Entity NoEntity = 0;
+
+    /* component helpers */
 
     struct ComponentManagerBase {
         virtual ~ComponentManagerBase() = default;
@@ -15,7 +20,7 @@ namespace dsecs {
 
     template<typename TComp>
     struct ComponentManager : ComponentManagerBase {
-        std::unordered_map<Entity, TComp> values;
+        std::unordered_map<Entity, TComp> values; // the actual array
 
         virtual ~ComponentManager() = default;
 
@@ -27,29 +32,36 @@ namespace dsecs {
         }
     };
 
-    struct SystemManagerBase {
+    /* system helpers */
+
+    struct SystemBase {
+        std::string name;
+
+        SystemManagerBase(std::string_view name) : name(name) { }
         virtual ~SystemManagerBase() = default;
+
         virtual void update(class World* w) = 0;
     };
 
     template<typename FExec>
-    struct SystemManager : SystemManagerBase { 
+    struct SystemManager : SystemBase {
         FExec execution;
 
-        SystemManager(FExec execution) : execution(execution) { }
+        SystemManager(std::string_view name, FExec execution) : SystemManagerBase(name), execution(execution) { }
         virtual ~SystemManager() = default;
 
-        virtual void update(class World* w) { execution(w, this); }
+        virtual void update(class World* w) { execution(w, this); } // the actual dispatch
     };
 
-    // structured this way to avoid needing to do static/extern
+    /* final world type */
+
     class World {
             Entity _nextEntity = 1;
-            std::unordered_map<size_t, std::shared_ptr<ComponentManagerBase>> _components;
-            std::unordered_map<std::string, std::unique_ptr<SystemManagerBase>> _systems;
+            std::unordered_map<size_t, std::shared_ptr<ComponentManagerBase>> _components; // the dynamic structure
+            std::vector<std::shared_ptr<SystemBase>> _systems; // the dynamic update list
 
         public:
-            Entity newEntity() { return _nextEntity++; }
+            auto newEntity() -> Entity { return _nextEntity++; }
 
             template<typename TComp>
             auto requireComponent() -> std::shared_ptr<ComponentManager<TComp>> {
@@ -66,15 +78,14 @@ namespace dsecs {
             auto allEntities() { return std::ranges::iota_view(1u, _nextEntity); }
         
             template<typename FExec>
-            SystemManager<FExec> const* makeSystem(std::string name, FExec exec) {
-                auto& res
-                    = _systems[name]
-                    = std::unique_ptr<SystemManagerBase>(new SystemManager<FExec>(exec));
-                return &reinterpret_cast<SystemManager<FExec>&>(*res);
+            auto makeSystem(std::string_view name, FExec exec) -> std::shared_ptr<SystemManager<FExec>> {
+                auto res = std::make_shared<SystemManager<FExec>>(name, exec);
+                _systems.emplace_back(res);
+                return res;
             }
 
             void update() {
-                for (auto& [_, sys] : _systems) {
+                for (auto sys : _systems) {
                     sys->update(this);
                 }
             }

@@ -1,7 +1,7 @@
 
 #include <iostream>
 #include <format>
-#include "dsecs.hpp"
+#include "dsecs_01.hpp"
 
 struct Position {
     float x, y;
@@ -25,18 +25,23 @@ int main()
     auto vel = world.requireComponent<Velocity>();
     auto acl = world.requireComponent<Acceleration>();
 
-    world.makeSystem("acceleration", [=](World* w) {
+    world.makeSystem([=](World* w) {
         for (auto& [e, a] : acl->values) {
-            vel->with(e, [=](auto& v) { v.x += a.x; v.y += a.y; });
+            if (vel->values.contains(e)) {
+                auto& v = vel->values[e];
+                v.x += a.x;
+                v.y += a.y;
+            }
         }
     });
 
-    world.makeSystem("velocity", [=](World* w) {
+    world.makeSystem([=](World* w) {
         for (auto& [e, v] : vel->values) {
-            pos->with(e, [=](auto& p) {
+            if (pos->values.contains(e)) {
+                auto& p = pos->values[e];
                 p.x += v.x;
                 p.y += v.y;
-            });
+            }
         }
     });
 

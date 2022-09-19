@@ -20,7 +20,13 @@ cc_test(
 
 cc_binary(
     name = "example",
-    deps = [":dsecs"],
-    srcs = ["example.cpp"],
+    srcs = ["dsecs.hpp", "example.cpp"],
+    copts = CPP20OPTS,
+)
+
+
+cc_binary(
+    name = "example_01_trinity",
+    srcs = ["01_trinity/dsecs_01.hpp", "01_trinity/example_01.cpp"],
     copts = CPP20OPTS,
 )

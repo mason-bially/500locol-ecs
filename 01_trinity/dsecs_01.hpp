@@ -23,19 +23,11 @@ namespace dsecs {
         std::unordered_map<Entity, TComp> values; // the actual array
 
         virtual ~ComponentManager() = default;
-
-        void with(Entity e, std::invocable<TComp&> chain) {
-            auto it = values.find(e);
-            if (it != values.end())
-                chain(it->second); // reuse the found value
-        }
     };
 
     /* system helpers */
 
     struct SystemBase {
-        std::string name;
-
         virtual ~SystemBase() = default;
 
         virtual void update(class World* w) = 0;
@@ -45,8 +37,8 @@ namespace dsecs {
     struct SystemManager : SystemBase {
         FExec execution;
 
-        SystemManager(std::string_view name, FExec execution)
-            : SystemBase(name), execution(execution) { }
+        SystemManager(FExec execution)
+            : SystemBase(), execution(execution) { }
         virtual ~SystemManager() = default;
 
         virtual void update(class World* w) override { execution(w); } // the actual dispatch
@@ -77,8 +69,8 @@ namespace dsecs {
             auto allEntities() { return std::ranges::iota_view(1u, _nextEntity); }
         
             template<std::invocable<World*> FExec>
-            auto makeSystem(std::string_view name, FExec exec) -> std::shared_ptr<SystemManager<FExec>> {
-                auto res = std::make_shared<SystemManager<FExec>>(name, exec);
+            auto makeSystem(FExec exec) -> std::shared_ptr<SystemManager<FExec>> {
+                auto res = std::make_shared<SystemManager<FExec>>(exec);
                 _systems.emplace_back(res);
                 return res;
             }

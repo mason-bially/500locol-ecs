@@ -361,12 +361,12 @@ Note all the boiler plate is gone through the use of the lambda value binding (`
 ```c++
 
 template<std::invocable<class World*> FExec>
-struct SystemManager : SystemBase {
+struct SystemAnonymous : SystemBase {
     FExec execution;
 
-    SystemManager(FExec execution)
+    SystemAnonymous(FExec execution)
         : SystemBase(), execution(execution) { }
-    virtual ~SystemManager() = default;
+    virtual ~SystemAnonymous() = default;
 
     virtual void update(class World* w) override { execution(w); } // the actual dispatch
 };
@@ -374,8 +374,8 @@ struct SystemManager : SystemBase {
 class World {
     public:
         template<std::invocable<World*> FExec>
-        auto makeSystem(FExec exec) -> std::shared_ptr<SystemManager<FExec>> {
-            auto res = std::make_shared<SystemManager<FExec>>(exec);
+        auto makeSystem(FExec exec) -> std::shared_ptr<SystemAnonymous<FExec>> {
+            auto res = std::make_shared<SystemAnonymous<FExec>>(exec);
             _systems.emplace_back(res);
             return res;
         }
@@ -418,7 +418,7 @@ There are two problems with this. The first is that it's verbose, it takes us tw
 
 ```c++
 struct ComponentManager : ComponentManagerBase {
-    void with(Entity e, std::invocable<TComp&> chain) {
+    void with(Entity e, std::invocable<TComp&> auto chain) {
         auto it = values.find(e);
         if (it != values.end())
             chain(it->second); // reuse the found value
@@ -443,13 +443,43 @@ A line less, more concise, and more algorithmically efficient.
 
 ### Names
 
-{Names on entities become components.}
+It would be convenient if we could refer to the components of our ECS by names at runtime using strings. We'll do the traditional ones first:
+
+```c++
+struct ComponentManagerBase {
+    std::string name;
+
+    ComponentManagerBase(std::string_view name)
+        : name(name) { }
+};
+        
+template<typename TComp>
+struct ComponentManager : ComponentManagerBase {
+    ComponentManager(std::string_view name)
+        : ComponentManagerBase(name), values() { }
+}
+
+struct SystemBase {
+    SystemBase(std::string_view name)
+        : name(name) { }
+
+    std::string name;
+};
+
+template<std::invocable<class World*> FExec>
+struct SystemManager : SystemBase {
+    SystemManager(std::string_view name, FExec execution)
+        : SystemBase(name), execution(execution) { }
+};
+```
+
+A string on each of our base wrapper objects and we have had to actually add constructors for each now.
 
 ### Systems Enable
 
 {Also the order issue.}
 
-### Remove
+### Remove & Delete
 
 ### Events
 
@@ -458,3 +488,14 @@ A line less, more concise, and more algorithmically efficient.
 ### The Name Refactor
 
 ### Entity Wrapper
+
+{and names}
+
+## Ergonomics II
+
+### Tags
+
+### 
+
+## Archetypes
+

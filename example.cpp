@@ -25,9 +25,14 @@ int main()
     auto vel = world.requireComponent<Velocity>();
     auto acl = world.requireComponent<Acceleration>();
 
+    std::cout << pos->name << " " << vel->name << " " << acl->name << std::endl;
+
     world.makeSystem("acceleration", [=](World* w) {
         for (auto& [e, a] : acl->values) {
-            vel->with(e, [=](auto& v) { v.x += a.x; v.y += a.y; });
+            vel->with(e, [=](auto& v) {
+                v.x += a.x;
+                v.y += a.y;
+            });
         }
     });
 

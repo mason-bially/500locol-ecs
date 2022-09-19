@@ -7,12 +7,12 @@
 
 // dead simple ecs
 namespace dsecs {
-    /* entity helpers */
+    /* entity trinity */
 
     using Entity = uint64_t;
     constexpr Entity NoEntity = 0;
 
-    /* component helpers */
+    /* component trinity */
 
     struct ComponentManagerBase {
         virtual ~ComponentManagerBase() = default;
@@ -25,7 +25,7 @@ namespace dsecs {
         virtual ~ComponentManager() = default;
     };
 
-    /* system helpers */
+    /* system trinity */
 
     struct SystemBase {
         virtual ~SystemBase() = default;
@@ -34,12 +34,12 @@ namespace dsecs {
     };
 
     template<std::invocable<class World*> FExec>
-    struct SystemManager : SystemBase {
+    struct SystemAnonymous : SystemBase {
         FExec execution;
 
-        SystemManager(FExec execution)
+        SystemAnonymous(FExec execution)
             : SystemBase(), execution(execution) { }
-        virtual ~SystemManager() = default;
+        virtual ~SystemAnonymous() = default;
 
         virtual void update(class World* w) override { execution(w); } // the actual dispatch
     };
@@ -69,8 +69,8 @@ namespace dsecs {
             auto allEntities() { return std::ranges::iota_view(1u, _nextEntity); }
         
             template<std::invocable<World*> FExec>
-            auto makeSystem(FExec exec) -> std::shared_ptr<SystemManager<FExec>> {
-                auto res = std::make_shared<SystemManager<FExec>>(exec);
+            auto makeSystem(FExec exec) -> std::shared_ptr<SystemAnonymous<FExec>> {
+                auto res = std::make_shared<SystemAnonymous<FExec>>(exec);
                 _systems.emplace_back(res);
                 return res;
             }

@@ -534,23 +534,85 @@ class World {
 
 Another straight forward change to our constructors and a base object name. This time requiring our users to always name their systems. This is again primarily for display, and the names of the anonymous functions we are using in this case will rarely be useful.
 
-Now everything is named, but we can't really access it. For that, we need...
+```c++
+// replacing our old definition of this system
+world.makeSystem("velocity", [=](World* w) {
+    for (auto& [e, v] : vel->values) {
+        if (pos->values.contains(e)) {
+            auto& p = pos->values[e];
+            p.x += v.x;
+            p.y += v.y;
+        }
+    }
+});
+
+// a new named entity
+Entity foo = world.requireEntity("foo");
+acl->values[foo] = { 1.0, 2.0 };
+pos->values[foo] = { 3.0, 4.0 };
+```
+
+Now everything is named, but we can really use it to display useful data. For that, we need...
 
 ### Printers
 
-Printers! Or, well formatters anyway, a way to render values into strings.
+Printers! Or, well formatters anyway, though they aren't quite that yet either. Basically we just want a way to render our components into strings.
 
 ```c++
 struct ComponentManagerBase {
     virtual auto has(Entity e) -> bool = 0;
-    virtual auto print(Entity e) -> std::string = 0;
+    virtual auto str(Entity e) -> std::string = 0;
 };
 ```
 
-We also need a way to know if an entity exists or not so that we can know whether the printer is even valid to call.
+We also need a way to know if an entity exists or not so that we can know whether the printer is even valid to call, hence we add the `has()` method.
 
+Our implementation is going to require a bit of setup. We are going to use argument dependent lookup (ADL) to access the formatting method on our component types. And since C++ already has a convention for those, we will reuse it.
 
-We already had this for entities, but now we might as well add it for components:
+```c++
+// just after our internal library struct
+auto& operator<<(std::ostream& os, Name n) {
+    return os << n.name;
+}
+
+// one of these for each of user structs, just after we defined them.
+auto& operator<<(std::ostream& os, Position p) {
+    return os << std::format("p<{:^+4}, {:^+4}>", p.x, p.y);
+}
+```
+
+Now we need a way to detect it in our implementation to ensure we are safe to use it. For that we will use a quick concept.
+
+```c++
+template <typename T>
+concept Streamable = requires(std::ostream &os, T value) {
+    { os << value } -> std::convertible_to<std::ostream &>;
+};
+```
+
+We now have all the pieces to implement our formatting method:
+
+```c++
+template<typename TComp>
+struct ComponentManager : ComponentManagerBase {
+    virtual auto has(Entity e) -> bool override { return values.contains(e); }
+    virtual auto str(Entity e) -> std::string override {
+        if (auto it = values.find(e); it != values.end())
+            if constexpr (Streamable<TComp>) {
+                std::stringstream ss;
+                ss << it->second;
+                return ss.str();
+            } else
+                return "<UNSTREAMABLE>";
+        else
+            return "<NULL>";
+    }
+};
+```
+
+For now we are avoiding the use of exceptions, and we instead return sentinal values. Our `if constexpr` allows us to make decisions about how our component manager will be structured at compile time, setting up our virtual function to dispatch to the stream formatter if available.
+
+We now need one more helper method that we already for entities:
 
 ```c++
 class World {
@@ -562,19 +624,27 @@ class World {
 And now we can write diagnostics in user code:
 
 ```c++
-
+std::cout << std::format("==== DIAGNOSE {:03} =====", foo) << std::endl;
+for (auto c : world.allComponents()) {
+    if (c->has(foo))
+        std::cout << std::format("{:20} || {}", c->name, c->str(foo)) << std::endl;
+}
 ```
-
 
 ### Systems Enable
 
-{Also the order issue.}
+Now we need to actually use our named systems for something interesting. In this case it will be enabling or disabling the system, allowing us to skip systems we don't care to run.
 
 ```c++
 struct SystemBase {
     bool enabled = true;
 };
 ```
+
+{also ordering?}
+
+
+We'll define our helper methods again:
 
 ```c++
 class World {

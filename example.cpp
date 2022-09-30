@@ -1,19 +1,37 @@
 
 #include <iostream>
-#include <format>
+#ifdef MSVC
+    #include <format>
+#else // compatability support:
+    #define FMT_HEADER_ONLY
+    #include <fmt/format.h>
+    namespace std { using namespace fmt; }
+#endif
 #include "dsecs.hpp"
 
 struct Position {
     float x, y;
 };
 
+auto& operator<<(std::ostream& os, Position p) {
+    return os << std::format("p<{:^+4}, {:^+4}>", p.x, p.y);
+}
+
 struct Velocity {
     float x, y;
 };
 
+auto& operator<<(std::ostream& os, Velocity v) {
+    return os << std::format("v<{:^+4}, {:^+4}>", v.x, v.y);
+}
+
 struct Acceleration {
     float x, y;
 };
+
+auto& operator<<(std::ostream& os, Acceleration a) {
+    return os << std::format("a<{:^+4}, {:^+4}>", a.x, a.y);
+}
 
 int main()
 {
@@ -75,7 +93,7 @@ int main()
     std::cout << std::format("==== DIAGNOSE {:03} =====", foo) << std::endl;
     for (auto c : world.allComponents()) {
         if (c->has(foo))
-            std::cout << std::format("{:20}||{}", c->name, c->print(foo)) << std::endl;
+            std::cout << std::format("{:20} || {}", c->name, c->str(foo)) << std::endl;
     }
 
     return 0;

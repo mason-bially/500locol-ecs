@@ -4,9 +4,17 @@
 #include <ranges>
 #include <vector>
 #include <string>
+#include <sstream>
+#include <concepts>
 
 // dead simple ecs
 namespace dsecs {
+    /* concepts forward declare */
+    template <typename T>
+    concept Streamable = requires(std::ostream &os, T value) {
+        { os << value } -> std::convertible_to<std::ostream &>;
+    };
+
     /* entity trinity */
 
     using Entity = uint64_t;
@@ -22,7 +30,7 @@ namespace dsecs {
         virtual ~ComponentManagerBase() = default;
 
         virtual auto has(Entity e) -> bool = 0;
-        virtual auto print(Entity e) -> std::string = 0;
+        virtual auto str(Entity e) -> std::string = 0;
     };
 
     template<typename TComp>
@@ -39,7 +47,17 @@ namespace dsecs {
         }
 
         virtual auto has(Entity e) -> bool override { return values.contains(e); }
-        virtual auto print(Entity e) -> std::string { return ""; }
+        virtual auto str(Entity e) -> std::string override {
+            if (auto it = values.find(e); it != values.end())
+                if constexpr (Streamable<TComp>) {
+                    std::stringstream ss;
+                    ss << it->second;
+                    return ss.str();
+                } else
+                    return "<UNSTREAMABLE>";
+            else
+                return "<NULL>";
+        }
     };
 
     /* system trinity */
@@ -70,6 +88,10 @@ namespace dsecs {
     struct Name {
         std::string name;
     };
+
+    auto& operator<<(std::ostream& os, Name n) {
+        return os << n.name;
+    }
 
     /* final world type */
 

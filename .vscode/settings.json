@@ -82,6 +82,14 @@
         "xstddef": "cpp",
         "xstring": "cpp",
         "xtr1common": "cpp",
-        "xtree": "cpp"
+        "xtree": "cpp",
+        "*.tcc": "cpp",
+        "cstdarg": "cpp",
+        "cwctype": "cpp",
+        "memory_resource": "cpp",
+        "numbers": "cpp",
+        "bitset": "cpp",
+        "shared_mutex": "cpp",
+        "semaphore": "cpp"
     }
 }

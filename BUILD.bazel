@@ -1,7 +1,7 @@
 CPP20OPTS = select({
     "@bazel_tools//src/conditions:windows": ["/std:c++20"],
     "//conditions:default": [
-        "-std=c++20",
+        "-std=c++20"
     ],
 })
 

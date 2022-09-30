@@ -25,8 +25,6 @@ int main()
     auto vel = world.requireComponent<Velocity>();
     auto acl = world.requireComponent<Acceleration>();
 
-    std::cout << pos->name << " " << vel->name << " " << acl->name << std::endl;
-
     world.makeSystem("acceleration", [=](World* w) {
         for (auto& [e, a] : acl->values) {
             vel->with(e, [=](auto& v) {
@@ -58,6 +56,10 @@ int main()
     vel->values[e3] = { 1.0, 0.0 };
     acl->values[e3] = { 0.0, 0.5 };
 
+    Entity foo = world.requireEntity("foo");
+    acl->values[foo] = { 1.0, 2.0 };
+    pos->values[foo] = { 3.0, 4.0 };
+
     world.update();
     world.update();
     world.update();
@@ -68,6 +70,12 @@ int main()
             (pos->values.contains(e)) ? std::format("{:^+4}, {:^+4}", pos->values[e].x, pos->values[e].y) : " _ ,   _",
             (vel->values.contains(e)) ? std::format("{:^+4}, {:^+4}", vel->values[e].x, vel->values[e].y) : " _ ,   _"
         ) << std::endl;
+    }
+
+    std::cout << std::format("==== DIAGNOSE {:03} =====", foo) << std::endl;
+    for (auto c : world.allComponents()) {
+        if (c->has(foo))
+            std::cout << std::format("{:20}||{}", c->name, c->print(foo)) << std::endl;
     }
 
     return 0;

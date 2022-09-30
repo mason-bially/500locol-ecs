@@ -20,6 +20,9 @@ namespace dsecs {
         ComponentManagerBase(std::string_view name)
             : name(name) { }
         virtual ~ComponentManagerBase() = default;
+
+        virtual auto has(Entity e) -> bool = 0;
+        virtual auto print(Entity e) -> std::string = 0;
     };
 
     template<typename TComp>
@@ -31,10 +34,12 @@ namespace dsecs {
         virtual ~ComponentManager() = default;
 
         void with(Entity e, std::invocable<TComp&> auto chain) {
-            auto it = values.find(e);
-            if (it != values.end())
-                chain(it->second); // reuse the found value
+            if (auto it = values.find(e); it != values.end())
+                chain(it->second); // reuse the found iterator/lookup
         }
+
+        virtual auto has(Entity e) -> bool override { return values.contains(e); }
+        virtual auto print(Entity e) -> std::string { return ""; }
     };
 
     /* system trinity */
@@ -54,7 +59,7 @@ namespace dsecs {
         FExec execution;
 
         SystemAnonymous(std::string_view name, FExec execution)
-            : SystemBase { name }, execution(execution) { }
+            : SystemBase(name), execution(execution) { }
         virtual ~SystemAnonymous() = default;
 
         virtual void update(class World* w) override { execution(w); } // the actual dispatch
@@ -75,13 +80,14 @@ namespace dsecs {
             std::unordered_map<std::string_view, Entity> _entityNames;
 
         public:
+            /* trinity */
+
             auto newEntity() -> Entity { return _nextEntity++; }
 
             template<typename TComp>
             auto requireComponent() -> std::shared_ptr<ComponentManager<TComp>> {
                 auto key = typeid(TComp).hash_code();
-                auto it = _components.find(key);
-                if (it != _components.end())
+                if (auto it = _components.find(key); it != _components.end())
                     // this static cast is safe because we index by typeid
                     return std::static_pointer_cast<ComponentManager<TComp>>(it->second);
                 auto res = std::make_shared<ComponentManager<TComp>>(typeid(TComp).name());
@@ -104,9 +110,24 @@ namespace dsecs {
                 return res;
             }
 
-            auto newEntity(std::string_view name) -> Entity {
-                auto e = newEntity();
-                return _entityNames[(requireComponent<Name>()->values[e] = { std::string(name) }).name] = e;
+            /* ergonomics I */
+
+            auto findEntity(std::string_view name) -> Entity {
+                auto it = _entityNames.find(name);
+                return (it != _entityNames.end()) ? it->second : NoEntity;
             }
+
+            auto requireEntity(std::string_view name) -> Entity {
+                // early exit if the name already exists
+                // we don't attempt to reuse this lookup in this case because the string view in the index must come from the component for a safe lifetime.
+                if (auto e = findEntity(name); e != NoEntity)
+                    return e;
+                
+                auto e = newEntity();
+                std::string_view name_str = (requireComponent<Name>()->values[e] = { std::string(name) }).name;
+                return _entityNames[name_str] = e;
+            }
+
+            auto allComponents() { return _components | std::views::values; }
     };
 }

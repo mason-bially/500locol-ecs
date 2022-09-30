@@ -57,8 +57,7 @@ namespace dsecs {
             template<typename TComp>
             auto requireComponent() -> std::shared_ptr<ComponentManager<TComp>> {
                 auto key = typeid(TComp).hash_code();
-                auto it = _components.find(key);
-                if (it != _components.end())
+                if (auto it = _components.find(key); it != _components.end())
                     // this static cast is safe because we index by typeid
                     return std::static_pointer_cast<ComponentManager<TComp>>(it->second);
                 auto res = std::make_shared<ComponentManager<TComp>>();

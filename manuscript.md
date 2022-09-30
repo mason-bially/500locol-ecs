@@ -118,7 +118,7 @@ Well, that was also pretty easy!
 Note that we skip 0 simply so that we can use it as a "no entity" in the future, which we should probably formalize.
 
 ```c++
-constexpr Entity NoEntity;
+constexpr Entity NoEntity = 0;
 ```
 
 Incidentally, due to our use of C++, this works already:
@@ -266,7 +266,7 @@ The above display method is notably inefficient. While the `.contains()` method 
 
 ### Systems
 
-Systems are the chunks of logic we want our ECS to run. Specifically the logic that runs across the entire world. Logic that happens in response to triggers, like input or network events, are generally done outside of the world, using the API and an external entity variable to "randomly access" the relevant components. And while plenty of ECS libraries to provide mechanisms for this, it is not the strength of the paradigm, and we will not be adding them.
+Systems are the chunks of logic we want our ECS to run. Specifically the logic that runs across the entire world. Logic that happens in response to triggers, like input or network events, are generally done outside of the world, using the API and an external entity variable to "randomly access" the relevant components. And while plenty of ECS libraries do provide mechanisms for this, it is not the strength of the paradigm, and we will not be adding them.
 
 With some quick library code based on how we organized components earlier:
 
@@ -400,7 +400,7 @@ And with that we have completed the basic trinity. See [here](01_trinity/example
 
 We now have a working ECS, however there are a number of ways we could improve it. Ways to improve the ergonomics of it.
 
-### With
+### Has and With
 
 The first thing to clean up is the verbose way by which we access components on entities. For reference of what this looks like:
 
@@ -419,8 +419,7 @@ There are two problems with this. The first is that it's verbose, it takes us tw
 ```c++
 struct ComponentManager : ComponentManagerBase {
     void with(Entity e, std::invocable<TComp&> auto chain) {
-        auto it = values.find(e);
-        if (it != values.end())
+        if (auto it = values.find(e); it != values.end())
             chain(it->second); // reuse the found value
     }
 };
@@ -443,7 +442,42 @@ A line less, more concise, and more algorithmically efficient.
 
 ### Names
 
-It would be convenient if we could refer to the components of our ECS by names at runtime using strings. We'll do the traditional ones first:
+It would be convenient if we could refer to the various aspects of our ECS by names at runtime using strings.
+
+We'll do entities first:
+
+```c++
+struct Name {
+    std::string name;
+};
+
+class World {
+    private:
+        std::unordered_map<std::string_view, Entity> _entityNames;
+    public:
+        auto findEntity(std::string_view name) -> Entity {
+            auto it = _entityNames.find(name);
+            return (it != _entityNames.end()) ? it->second : NoEntity;
+        }
+
+        auto requireEntity(std::string_view name) -> Entity {
+            // early exit if the name already exists
+            // we don't attempt to reuse this lookup in this case because the string view in the index must come from the component for a safe lifetime.
+            if (auto it = _entityNames.find(name); it != _entityNames.end())
+                return it->second;
+            
+            auto e = newEntity();
+            std::string_view name_str = (requireComponent<Name>()->values[e] = { std::string(name) }).name;
+            return _entityNames[name_str] = e;
+        }
+};
+```
+
+Here, we use a component to store our name, because why not? The entire purpose of our paradigm is to allow for fine grained composition of data, and the names of our entities is a piece of data we want them to have.
+
+Notice also our `_entityNames` that allows us to find and entity by name. This is effectively a database index on the column of names. It's worth noting that the `string_view` we use for this index is backed by the components they are indexing. Which prevents us from constructing the index entry "early".
+
+Component names are next:
 
 ```c++
 struct ComponentManagerBase {
@@ -459,11 +493,26 @@ struct ComponentManager : ComponentManagerBase {
         : ComponentManagerBase(name), values() { }
 }
 
+class World {
+    public:
+        auto requireComponent() -> std::shared_ptr<ComponentManager<TComp>> {
+            /* ... */
+            auto res = std::make_shared<ComponentManager<TComp>>(typeid(TComp).name());
+            /* ... */
+        }
+};
+```
+
+A straight forward change to our constructors and base class, and the automatic determination of the name of the component using reflection. Unfortunately this reflection is unreliable and implementation dependent. However for our purposes we are mainly using these names for diagnostic purposes, which the implementation dependent nature does serve us for. Later we will see how to replace these with user determined names.
+
+And finally, naming our systems:
+
+```c++
 struct SystemBase {
+    std::string name;
+
     SystemBase(std::string_view name)
         : name(name) { }
-
-    std::string name;
 };
 
 template<std::invocable<class World*> FExec>
@@ -471,13 +520,74 @@ struct SystemManager : SystemBase {
     SystemManager(std::string_view name, FExec execution)
         : SystemBase(name), execution(execution) { }
 };
+
+class World {
+    public:
+        template<std::invocable<World*> FExec>
+        auto makeSystem(std::string_view name, FExec exec) -> std::shared_ptr<SystemAnonymous<FExec>> {
+            auto res = std::make_shared<SystemAnonymous<FExec>>(name, exec);
+            _systems.emplace_back(res);
+            return res;
+        }
+};
 ```
 
-A string on each of our base wrapper objects and we have had to actually add constructors for each now.
+Another straight forward change to our constructors and a base object name. This time requiring our users to always name their systems. This is again primarily for display, and the names of the anonymous functions we are using in this case will rarely be useful.
+
+Now everything is named, but we can't really access it. For that, we need...
+
+### Printers
+
+Printers! Or, well formatters anyway, a way to render values into strings.
+
+```c++
+struct ComponentManagerBase {
+    virtual auto has(Entity e) -> bool = 0;
+    virtual auto print(Entity e) -> std::string = 0;
+};
+```
+
+We also need a way to know if an entity exists or not so that we can know whether the printer is even valid to call.
+
+
+We already had this for entities, but now we might as well add it for components:
+
+```c++
+class World {
+    public:
+        auto allComponents() { return _components | std::views::values; }
+};
+```
+
+And now we can write diagnostics in user code:
+
+```c++
+
+```
+
 
 ### Systems Enable
 
 {Also the order issue.}
+
+```c++
+struct SystemBase {
+    bool enabled = true;
+};
+```
+
+```c++
+class World {
+    public:
+        auto allSystems() { return _systems | std::views::values; }
+
+        auto findSystem(std::string_view name) -> std::shared_ptr<SystemBase> { 
+            auto it = _systems.find(name); // TODO needs to be a lambda
+            return (it != _systems.end()) ? it->second : { };
+        }
+};
+```
+
 
 ### Remove & Delete
 
@@ -487,6 +597,8 @@ A string on each of our base wrapper objects and we have had to actually add con
 
 ### The Name Refactor
 
+### Freedom from Bases
+
 ### Entity Wrapper
 
 {and names}
@@ -495,7 +607,7 @@ A string on each of our base wrapper objects and we have had to actually add con
 
 ### Tags
 
-### 
+### Indexes
 
 ## Archetypes
 

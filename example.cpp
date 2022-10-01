@@ -1,6 +1,6 @@
 
 #include <iostream>
-#ifdef MSVC
+#ifdef _MSC_VER
     #include <format>
 #else // compatability support:
     #define FMT_HEADER_ONLY
@@ -33,6 +33,21 @@ auto& operator<<(std::ostream& os, Acceleration a) {
     return os << std::format("a<{:^+4}, {:^+4}>", a.x, a.y);
 }
 
+// The current health status of a unit, the status is all the important parts of health as calculated from other systems.
+// - maxium describes the current maximum value of health the unit can have as calculated from other sources.
+// - current_pct describes the curren percentage of the maximum, note that health scaling falls out of this design (even if fixed damage amounts must be divided in).
+// - delta describes the current change per second the unit is undergoing from accumulated status effects and base health regen and buffs and the like.
+struct HealthStatus {
+    double current_pct;
+    uint32_t maximum;
+
+    double delta;
+};
+
+auto& operator<<(std::ostream& os, HealthStatus h) {
+    return os << std::format("health: {:.0F} / {:<7}", h.maximum * h.current_pct, h.maximum);
+}
+
 int main()
 {
     using namespace dsecs;
@@ -42,6 +57,8 @@ int main()
     auto pos = world.requireComponent<Position>();
     auto vel = world.requireComponent<Velocity>();
     auto acl = world.requireComponent<Acceleration>();
+
+    auto health = world.requireComponent<HealthStatus>();
 
     world.makeSystem("acceleration", [=](World* w) {
         for (auto& [e, a] : acl->values) {
@@ -61,6 +78,14 @@ int main()
         }
     });
 
+    world.makeSystem("health-tick", [=](World* w) {
+        for (auto& [e, h] : health->values) {
+            h.current_pct += h.delta / h.maximum;
+            if (h.current_pct <= 0.0)
+                health->values.erase(e); // uh-oh
+        }
+    });
+
     Entity e0 = world.newEntity();
     pos->values[e0] = { 0.0, 3.0 };
     Entity e1 = world.newEntity();
@@ -77,24 +102,48 @@ int main()
     Entity foo = world.requireEntity("foo");
     acl->values[foo] = { 1.0, 2.0 };
     pos->values[foo] = { 3.0, 4.0 };
+    health->values[foo] = { 1.0, 500, -100 };
+
+    auto printAll = [&] {
+        std::cout << std::format("===== WORLD STATE =====", foo) << std::endl;
+        for (auto e : world.allEntities()) {
+            std::cout << std::format("{:03}:   p<{:^12}>   v<{:^12}>", e,
+                (pos->values.contains(e)) ? std::format("{:^+4}, {:^+4}", pos->values[e].x, pos->values[e].y) : " _ ,   _",
+                (vel->values.contains(e)) ? std::format("{:^+4}, {:^+4}", vel->values[e].x, vel->values[e].y) : " _ ,   _"
+            ) << std::endl;
+        }
+    };
+
+    auto printOne = [&](Entity e) {
+        std::cout << std::format("===== DIAGNOSE {:03} =====", e) << std::endl;
+        for (auto c : world.allComponents()) {
+            if (c->has(e))
+                std::cout << std::format("{:20} || {}", c->name, c->str(e)) << std::endl;
+        }
+    };
+
+    printOne(foo);
+    acl->values.erase(foo);
+    printOne(foo);
+
+    printAll();
 
     world.update();
     world.update();
     world.update();
     world.update();
 
-    for (auto e : world.allEntities()) {
-        std::cout << std::format("{:03}:   p<{:^12}>   v<{:^12}>", e,
-            (pos->values.contains(e)) ? std::format("{:^+4}, {:^+4}", pos->values[e].x, pos->values[e].y) : " _ ,   _",
-            (vel->values.contains(e)) ? std::format("{:^+4}, {:^+4}", vel->values[e].x, vel->values[e].y) : " _ ,   _"
-        ) << std::endl;
-    }
+    printOne(foo);
+    printAll();
 
-    std::cout << std::format("==== DIAGNOSE {:03} =====", foo) << std::endl;
-    for (auto c : world.allComponents()) {
-        if (c->has(foo))
-            std::cout << std::format("{:20} || {}", c->name, c->str(foo)) << std::endl;
-    }
+    world.findSystem("acceleration")->enable = false;
+    world.update();
+    world.update();
+    world.update();
+    world.update();
+
+    printOne(foo);
+    printAll();
 
     return 0;
 }

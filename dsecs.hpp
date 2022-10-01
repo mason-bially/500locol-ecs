@@ -64,6 +64,7 @@ namespace dsecs {
 
     struct SystemBase {
         std::string name;
+        bool enable = true;
 
         SystemBase(std::string_view name)
             : name(name) { }
@@ -120,7 +121,7 @@ namespace dsecs {
             auto allEntities() { return std::ranges::iota_view(1u, _nextEntity); }
 
             void update() {
-                for (auto sys : _systems) {
+                for (auto sys : _systems | std::views::filter(&SystemBase::enable)) {
                     sys->update(this);
                 }
             }
@@ -151,5 +152,12 @@ namespace dsecs {
             }
 
             auto allComponents() { return _components | std::views::values; }
+
+            auto allSystems() { return _systems | std::views::all; }
+
+            auto findSystem(std::string_view name) -> std::shared_ptr<SystemBase> { 
+                auto it = std::ranges::find_if(_systems, [&](auto s){ return s->name == name; });
+                return (it != _systems.end()) ? *it : nullptr;
+            }
     };
 }

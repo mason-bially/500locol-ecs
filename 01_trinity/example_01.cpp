@@ -1,6 +1,6 @@
 
 #include <iostream>
-#ifdef MSVC
+#ifdef _MSC_VER
     #include <format>
 #else // compatability support:
     #define FMT_HEADER_ONLY

@@ -400,7 +400,7 @@ And with that we have completed the basic trinity. See [here](01_trinity/example
 
 We now have a working ECS, however there are a number of ways we could improve it. Ways to improve the ergonomics of it.
 
-### Has and With
+### With
 
 The first thing to clean up is the verbose way by which we access components on entities. For reference of what this looks like:
 
@@ -554,7 +554,7 @@ pos->values[foo] = { 3.0, 4.0 };
 
 Now everything is named, but we can really use it to display useful data. For that, we need...
 
-### Printers
+### Component Printers (and Has)
 
 Printers! Or, well formatters anyway, though they aren't quite that yet either. Basically we just want a way to render our components into strings.
 
@@ -610,9 +610,9 @@ struct ComponentManager : ComponentManagerBase {
 };
 ```
 
-For now we are avoiding the use of exceptions, and we instead return sentinal values. Our `if constexpr` allows us to make decisions about how our component manager will be structured at compile time, setting up our virtual function to dispatch to the stream formatter if available.
+For now we are avoiding the use of exceptions, and we instead return sentinel values. Our `if constexpr` allows us to make decisions about how our component manager will be structured at compile time, setting up our virtual function to dispatch to the stream formatter if available.
 
-We now need one more helper method that we already for entities:
+We now need one more helper method that we already had for entities:
 
 ```c++
 class World {
@@ -637,29 +637,100 @@ Now we need to actually use our named systems for something interesting. In this
 
 ```c++
 struct SystemBase {
-    bool enabled = true;
+    bool enable = true;
 };
 ```
 
-{also ordering?}
-
-
-We'll define our helper methods again:
+And then we'll define our helper methods again:
 
 ```c++
 class World {
     public:
-        auto allSystems() { return _systems | std::views::values; }
+        auto allSystems() { return _systems | std::views::all; }
 
         auto findSystem(std::string_view name) -> std::shared_ptr<SystemBase> { 
-            auto it = _systems.find(name); // TODO needs to be a lambda
-            return (it != _systems.end()) ? it->second : { };
+            auto it = std::ranges::find_if(_systems, [&](auto s){ return s->name == name; });
+            return (it != _systems.end()) ? *it : nullptr;
+        }
+};
+```
+
+And finally we need change our update our main update loop:
+
+```c++
+class World {
+    public:
+        void update() {
+            for (auto sys : _systems | std::views::filter(&SystemBase::enable)) {
+                sys->update(this);
+            }
         }
 };
 ```
 
 
-### Remove & Delete
+Now we can turn our systems on and off as needed.
+
+```c++
+world.findSystem("acceleration")->enable = false;
+world.update();
+world.update();
+world.update();
+world.update();
+```
+
+### Kill
+
+We have for a while had the ability to remove components.
+
+```c++
+acl->values.erase(foo);
+```
+
+There is a slight danger to this at the moment due to the iterator invalidation rules of `std::unordered_map`, to demonstrate we will introduce some new components and a new system.
+
+```c++
+// The current health status of a unit, the status is all the important parts of health as calculated from other systems.
+// - maxium describes the current maximum value of health the unit can have as calculated from other sources.
+// - current_pct describes the curren percentage of the maximum, note that health scaling falls out of this design (even if fixed damage amounts must be divided in).
+// - delta describes the current change per second the unit is undergoing from accumulated status effects and base health regen and buffs and the like.
+struct HealthStatus {
+    double current_pct;
+    uint32_t maximum;
+
+    double delta;
+};
+
+auto& operator<<(std::ostream& os, HealthStatus h) {
+    return os << std::format("health: {:.0F} / {:<7}", h.maximum * h.current_pct, h.maximum);
+}
+```
+
+An example value setup:
+
+```c++
+health->values[foo] = { 1.0, 500, -100 }; // full health unit, with 500 health, loosing 100 health every second (update in our case).
+```
+
+And the system that demonstrates the common pattern:
+
+```c++
+world.makeSystem("health-tick", [=](World* w) {
+    for (auto& [e, h] : health->values) {
+        h.current_pct += h.delta / h.maximum;
+        if (h.current_pct <= 0.0)
+            health->values.erase(e); // our iterator is now invalidated, the h (and e!) above are now invalidated because they were taken by reference.
+    }
+});
+```
+
+The problem here is that `erase()` on `std::unordered_map` invalidates iterators that were pointing at the erased entity. As our iterator in this example is. Luckily the standard is very careful in the wording here and allows for continued iteration in this case.
+
+This is of course a common pattern, being able to remove one's own component is an important paradigm, especially for temporary components like sound effects, animations, and other timed information.
+
+As an aside, we'd also like to actually kill the whole entity in this situation.
+
+
 
 ### Events
 
@@ -674,6 +745,8 @@ class World {
 {and names}
 
 ## Ergonomics II
+
+### System Ordering
 
 ### Tags
 

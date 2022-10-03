@@ -560,8 +560,8 @@ Printers! Or, well formatters anyway, though they aren't quite that yet either. 
 
 ```c++
 struct ComponentManagerBase {
-    virtual auto has(Entity e) -> bool = 0;
-    virtual auto str(Entity e) -> std::string = 0;
+    virtual auto has(Entity e) const -> bool = 0;
+    virtual auto str(Entity e) const -> std::string = 0;
 };
 ```
 
@@ -595,8 +595,8 @@ We now have all the pieces to implement our formatting method:
 ```c++
 template<typename TComp>
 struct ComponentManager : ComponentManagerBase {
-    virtual auto has(Entity e) -> bool override { return values.contains(e); }
-    virtual auto str(Entity e) -> std::string override {
+    virtual auto has(Entity e) const -> bool override { return values.contains(e); }
+    virtual auto str(Entity e) const -> std::string override {
         if (auto it = values.find(e); it != values.end())
             if constexpr (Streamable<TComp>) {
                 std::stringstream ss;
@@ -681,13 +681,13 @@ world.update();
 
 ### Kill
 
-We have for a while had the ability to remove components.
+We have had the ability to remove components since our initial implementation.
 
 ```c++
 acl->values.erase(foo);
 ```
 
-There is a slight danger to this at the moment due to the iterator invalidation rules of `std::unordered_map`, to demonstrate we will introduce some new components and a new system.
+To demonstrate a use case for this, we'll introduce a new component and system. Health.
 
 ```c++
 // The current health status of a unit, the status is all the important parts of health as calculated from other systems.
@@ -712,27 +712,63 @@ An example value setup:
 health->values[foo] = { 1.0, 500, -100 }; // full health unit, with 500 health, loosing 100 health every second (update in our case).
 ```
 
-And the system that demonstrates the common pattern:
+And the system for it that finally demonstrates our use of deleting a component.
 
 ```c++
 world.makeSystem("health-tick", [=](World* w) {
     for (auto& [e, h] : health->values) {
-        h.current_pct += h.delta / h.maximum;
-        if (h.current_pct <= 0.0)
-            health->values.erase(e); // our iterator is now invalidated, the h (and e!) above are now invalidated because they were taken by reference.
+        double health_point_pct = 1.0 / h.maximum;  // to prevent dividing multiple times
+        h.current_pct += h.delta * health_point_pct;
+        if (h.current_pct <= 0.5 * health_point_pct) // less than 0.5 health points, this is effectively our epsilon.
+            health->values.erase(e); // our iterator is now invalidated, the h (and e!) above are now invalid because they were taken by reference.
     }
 });
 ```
 
-The problem here is that `erase()` on `std::unordered_map` invalidates iterators that were pointing at the erased entity. As our iterator in this example is. Luckily the standard is very careful in the wording here and allows for continued iteration in this case.
+The above is perhaps a bit convoluted, but it has some nice properties. There are other valid designs with their own properties and users are encouraged to try their own. I've left the naïve solution as a comparison for the reader to try themselves.
 
-This is of course a common pattern, being able to remove one's own component is an important paradigm, especially for temporary components like sound effects, animations, and other timed information.
+However, the part we are actually interested in is the "death" of our unit. This is of course a common pattern, being able to remove one's own component is an important paradigm, especially for temporary components like sound effects, animations, and other timed information. However in this situation we would also like to actually kill the whole entity in this situation. This needs a new feature.
 
-As an aside, we'd also like to actually kill the whole entity in this situation.
+```c++
+class World {
+    public:
+        void kill(Entity e) {
+            for (auto c : allComponents())
+                if (c->has(e))
+                    c->del(e);
+        }
+};
+```
 
+We have another problem of course, the components need a way to delete things without access to the concrete type. Just another virtual method away:
 
+```c++
+    struct ComponentManagerBase {
+        virtual void del(Entity e) = 0;
+    };
+
+    template<typename TComp>
+    struct ComponentManager : ComponentManagerBase {
+        virtual void del(Entity e) override {
+            values.erase(e);
+        }
+    };
+```
+
+And we can now use kill in our `"health-tick"` system.
+
+```c++
+if (h.current_pct <= 0.5 * health_point_pct) // less than 0.5 health points, this is effectively our epsilon.
+    w->kill(e); // our iterator is now invalidated, the h (and e!) above are now invalid because they were taken by reference.
+```
+
+We'll have to remember that this invalidates iterators on the entity.
 
 ### Events
+
+One last important form of ergonomics we could use are events. Ways to respond to various changes.
+
+
 
 ## Meta Entities
 

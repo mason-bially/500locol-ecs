@@ -29,8 +29,9 @@ namespace dsecs {
             : name(name) { }
         virtual ~ComponentManagerBase() = default;
 
-        virtual auto has(Entity e) -> bool = 0;
-        virtual auto str(Entity e) -> std::string = 0;
+        virtual auto has(Entity e) const -> bool = 0;
+        virtual auto str(Entity e) const -> std::string = 0;
+        virtual void del(Entity e) = 0;
     };
 
     template<typename TComp>
@@ -46,8 +47,8 @@ namespace dsecs {
                 chain(it->second); // reuse the found iterator/lookup
         }
 
-        virtual auto has(Entity e) -> bool override { return values.contains(e); }
-        virtual auto str(Entity e) -> std::string override {
+        virtual auto has(Entity e) const -> bool override { return values.contains(e); }
+        virtual auto str(Entity e) const -> std::string override {
             if (auto it = values.find(e); it != values.end())
                 if constexpr (Streamable<TComp>) {
                     std::stringstream ss;
@@ -57,6 +58,9 @@ namespace dsecs {
                     return "<UNSTREAMABLE>";
             else
                 return "<NULL>";
+        }
+        virtual void del(Entity e) override {
+            values.erase(e);
         }
     };
 
@@ -158,6 +162,12 @@ namespace dsecs {
             auto findSystem(std::string_view name) -> std::shared_ptr<SystemBase> { 
                 auto it = std::ranges::find_if(_systems, [&](auto s){ return s->name == name; });
                 return (it != _systems.end()) ? *it : nullptr;
+            }
+
+            void kill(Entity e) {
+                for (auto c : allComponents())
+                    if (c->has(e))
+                        c->del(e);
             }
     };
 }

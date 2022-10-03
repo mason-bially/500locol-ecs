@@ -80,9 +80,10 @@ int main()
 
     world.makeSystem("health-tick", [=](World* w) {
         for (auto& [e, h] : health->values) {
-            h.current_pct += h.delta / h.maximum;
-            if (h.current_pct <= 0.0)
-                health->values.erase(e); // uh-oh
+            double health_point_pct = 1.0 / h.maximum;  // to prevent dividing multiple times
+            h.current_pct += h.delta * health_point_pct;
+            if (h.current_pct <= 0.5 * health_point_pct) // less than 0.5 health points, this is effectively our epsilon.
+                w->kill(e); // our iterator is now invalidated, the h (and e!) above are now invalid because they were taken by reference.
         }
     });
 

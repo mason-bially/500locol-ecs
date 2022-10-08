@@ -764,9 +764,14 @@ if (h.current_pct <= 0.5 * health_point_pct) // less than 0.5 health points, thi
 
 We'll have to remember that this invalidates iterators on the entity.
 
+### Actual API
+
+We have been moving towards this for a bit, but it's time to finally have an actual API for the components.
+
+
 ### Events
 
-One last important form of ergonomics we could use are events. Ways to respond to various changes.
+One last important form of ergonomics we could use are events. Ways to respond to various changes automatically. Now that we have an API, we can do this step.
 
 
 

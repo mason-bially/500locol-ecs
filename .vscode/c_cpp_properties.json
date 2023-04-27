@@ -4,7 +4,8 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/bazel-500locol-ecs/external/catch/single_include/**"
+                "${workspaceFolder}/bazel-500locol-ecs/external/catch/single_include/**",
+                "${workspaceFolder}/bazel-500locol-ecs/external/benchmark/include/**"
             ],
             "defines": [
                 "_DEBUG",
@@ -16,6 +17,20 @@
             "cStandard": "c17",
             "cppStandard": "c++23",
             "intelliSenseMode": "windows-msvc-x64"
+        },
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/bazel-500locol-ecs/external/catch/single_include/**",
+                "${workspaceFolder}/bazel-500locol-ecs/external/benchmark/include/**",
+                "${workspaceFolder}/bazel-500locol-ecs/external/flecs/**"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c17",
+            "cppStandard": "c++23",
+            "intelliSenseMode": "linux-clang-x64"
         }
     ],
     "version": 4

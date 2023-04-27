@@ -1,32 +1,46 @@
-CPP20OPTS = select({
-    "@bazel_tools//src/conditions:windows": ["/std:c++20"],
+CPPOPTS = select({
+    "@bazel_tools//src/conditions:windows": ["/std:c++23"],
     "//conditions:default": [
-        "-std=c++20"
+        "-std=c++23"
     ],
 })
 
 cc_library(
     name = "dsecs",
     hdrs = ["dsecs.hpp"],
-    copts = CPP20OPTS,
+    copts = CPPOPTS,
 )
 
 cc_test(
     name = "test",
     deps = [":dsecs", "@catch//:single_include"],
     srcs = ["tests.cpp"],
-    copts = CPP20OPTS,
+    copts = CPPOPTS,
 )
 
 cc_binary(
     name = "example",
     srcs = ["dsecs.hpp", "example.cpp"],
-    copts = CPP20OPTS,
+    copts = CPPOPTS,
 )
 
 
 cc_binary(
     name = "example_01_trinity",
     srcs = ["01_trinity/dsecs_01.hpp", "01_trinity/example_01.cpp"],
-    copts = CPP20OPTS,
+    copts = CPPOPTS,
+)
+
+cc_binary(
+    name = "example_9z_zero",
+    srcs = ["9z_zero/dsecs_9z.hpp", "9z_zero/example_9z.cpp"],
+    copts = CPPOPTS,
+)
+
+cc_binary(
+    name = "benchmark",
+    srcs = glob(["benchmark/**/*.h*", "benchmark/**/*.c*"])
+        + ["01_trinity/dsecs_01.hpp", "9z_zero/dsecs_9z.hpp"],
+    copts = CPPOPTS,
+    deps = ["@benchmark", "@flecs"],
 )

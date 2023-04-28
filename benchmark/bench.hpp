@@ -64,3 +64,33 @@ inline void updateData(DataComponent& data, TimeDelta dt) {
     std::string stringy = fmt::format(FMT_STRING("{:4.2f}"), data.dingy);
     std::char_traits<char>::copy(data.stringy, stringy.data(), std::min(stringy.length(), DataComponent::StringyMaxLength));
 }
+
+
+struct BenchmarkSettings {
+    enum EMainType {
+        Init = 1,
+        Update = 2,
+        Expand = 4,
+        Churn = 8,
+    } MainType;
+
+};
+
+static constexpr inline BenchmarkSettings::EMainType operator|(BenchmarkSettings::EMainType a, BenchmarkSettings::EMainType b) {
+    return (BenchmarkSettings::EMainType)((int)a | (int)b);
+}
+
+template<BenchmarkSettings bs, BenchmarkSettings::EMainType type, typename FNRun>
+static inline void bench_or_once(benchmark::State& state, FNRun&& run) {
+    if constexpr (((int)bs.MainType & (int)type)) {
+        for (auto _ : state)
+            run();
+    } else {
+        run();
+    }
+}
+
+constexpr BenchmarkSettings BsInit = { BenchmarkSettings::Init };
+constexpr BenchmarkSettings BsUpdate = { BenchmarkSettings::Update };
+constexpr BenchmarkSettings BsExpand = { BenchmarkSettings::Expand };
+constexpr BenchmarkSettings BsChurn = { BenchmarkSettings::Churn };

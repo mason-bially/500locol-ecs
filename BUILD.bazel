@@ -42,5 +42,5 @@ cc_binary(
     srcs = glob(["benchmark/**/*.h*", "benchmark/**/*.c*"])
         + ["01_trinity/dsecs_01.hpp", "9z_zero/dsecs_9z.hpp"],
     copts = CPPOPTS,
-    deps = ["@benchmark", "@flecs"],
+    deps = ["@benchmark", "@flecs", "@pico//:ecs"],
 )

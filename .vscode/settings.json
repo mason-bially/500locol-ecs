@@ -90,6 +90,7 @@
         "numbers": "cpp",
         "bitset": "cpp",
         "shared_mutex": "cpp",
-        "semaphore": "cpp"
+        "semaphore": "cpp",
+        "codecvt": "cpp"
     }
 }

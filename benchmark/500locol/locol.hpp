@@ -2,51 +2,74 @@
 
 #include "../bench.hpp"
 
-template<typename World>
-inline void locol_bm(benchmark::State& state) {
-    World world;
-
-    auto pos = world.template requireComponent<PositionComponent>();
-    auto vel = world.template requireComponent<VelocityComponent>();
-    auto dat = world.template requireComponent<DataComponent>();
-
+template<BenchmarkSettings bs, typename World>
+inline void locol_bm_A(benchmark::State& state) {
     TimeDelta delta = {1.0F / 60.0F};
+    std::vector<uint64_t> vec;
+    vec.reserve(BMEntities * 1024);
+    std::vector<uint64_t> out;
+    vec.reserve(BMEntities / 2);
 
-    world.makeSystem([=,&delta](World* w) {
-        for (auto& [e, v] : vel->values) {
-            if (pos->values.contains(e)) {
-                auto& p = pos->values[e];
+    bench_or_once<bs, BenchmarkSettings::Init>(state,
+    [&] {
+        World world;
+        auto pos = world.template requireComponent<PositionComponent>();
+        auto vel = world.template requireComponent<VelocityComponent>();
+        auto dat = world.template requireComponent<DataComponent>();
 
-                updatePosition(p, v, delta);
+        world.makeSystem("updatePosition", [=,&delta](World* w) {
+            for (auto& [e, v] : vel->values) {
+                if (pos->values.contains(e)) {
+                    auto& p = pos->values[e];
+
+                    updatePosition(p, v, delta);
+                }
             }
-        }
-    });
+        });
 
-    world.makeSystem([=](World* w) {
-        for (auto& [e, d] : dat->values) {
-            if (pos->values.contains(e), vel->values.contains(e)) {
-                auto& p = pos->values[e];
-                auto& v = vel->values[e];
-                
-                updateComponents(p, v, d);
+        world.makeSystem("updateComponents", [=](World* w) {
+            for (auto& [e, d] : dat->values) {
+                if (pos->values.contains(e), vel->values.contains(e)) {
+                    auto& p = pos->values[e];
+                    auto& v = vel->values[e];
+                    
+                    updateComponents(p, v, d);
+                }
             }
-        }
+        });
+
+        world.makeSystem("updateData", [=,&delta](World* w) {
+            for (auto& [e, d] : dat->values) {
+                updateData(d, delta);
+            }
+        });
+
+        bench_or_once<bs, BenchmarkSettings::Expand|BenchmarkSettings::Churn>(state,
+        [&] {
+            for (size_t i = 0; i < BMEntities; ++i) {
+                auto e = world.newEntity();
+                pos->values[e] = { };
+                if ((i & 3) == 0)
+                    vel->values[e] = { };
+                if ((i & 8) == 0)
+                    dat->values[e] = { };
+
+                if constexpr (bs.MainType == BenchmarkSettings::Churn)
+                    vec.push_back(e);
+            }
+
+            if constexpr (bs.MainType == BenchmarkSettings::Churn) {
+                std::sample(vec.begin(), vec.end(),
+                    std::back_inserter(out), BMEntities / 2,
+                    m_eng
+                );
+                for (auto e : out)
+                    world.kill(e);
+                out.clear();
+            }
+
+            bench_or_once<bs, BenchmarkSettings::Update>(state,
+            [&] { world.update(); });
+        });
     });
-
-    world.makeSystem([=,&delta](World* w) {
-        for (auto& [e, d] : dat->values) {
-            updateData(d, delta);
-        }
-    });
-
-    for (size_t i = 0; i < BMEntities; ++i) {
-        auto e = world.newEntity();
-        pos->values[e] = { };
-        vel->values[e] = { };
-        if ((i & 8) == 0)
-            dat->values[e] = { };
-    }
-
-    for (auto _ : state)
-        world.update();
 }

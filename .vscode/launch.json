@@ -15,6 +15,7 @@
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
+            "sourceFileMap": { "/proc/self/cwd": "${workspaceFolder}" },
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",

@@ -1,5 +1,5 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
 
 http_archive(
     name = "catch",
@@ -18,4 +18,17 @@ git_repository(
     remote = "git@github.com:SanderMertens/flecs.git",
     commit = "0fab02f47f330b863a67a8e253ceba4956861ef6",
     shallow_since = "1681676287 -0700"
+)
+new_git_repository(
+    name = "pico",
+    remote = "git@github.com:empyreanx/pico_headers.git",
+    commit = "20e19aa5447d016bbebc25dba5f68b48d56b8ef2",
+    shallow_since = "1682712996 -0400",
+    build_file_content = """
+cc_library(
+    name = "ecs",
+    visibility = ["//visibility:public"],
+    hdrs = ["pico_ecs.h"],
+)
+    """,
 )

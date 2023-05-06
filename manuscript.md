@@ -1,5 +1,7 @@
 # DSECS: Dead Simple Entity-Component-System framework.
 
+Skip to [Philosophy](#Philosophy) for the currently edited section. Beware wandering past [THE LINE](#—THE_LINE—).
+
 ## Background
 
 ### Parable
@@ -455,6 +457,17 @@ And with that we have completed the basic trinity.
 - Lines of Code: `057loc`
 - Update Performance: ~1.33x
 - Insert Performance: ~3.20x
+
+# —THE LINE—
+
+- Everything above the line is working draft *at worst*. Everything beyond the line is rough draft *at best*.
+- Everything above the line is *probably close* to the final text. Everything beyond the line is *probably trash* that I will delete or re-write.
+
+<div align="left">
+      <a href="https://www.youtube.com/watch?v=H8yQhXDquII">
+         <img src="https://img.youtube.com/vi/H8yQhXDquII/0.jpg" style="width:100%;">
+      </a>
+</div>
 
 ## Ergonomics I
 

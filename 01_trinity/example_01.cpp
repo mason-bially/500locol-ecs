@@ -1,12 +1,6 @@
 
 #include <iostream>
-#ifdef _MSC_VER
-    #include <format>
-#else // compatability support:
-    #define FMT_HEADER_ONLY
-    #include <fmt/format.h>
-    namespace std { using namespace fmt; }
-#endif
+#include "compat/format"
 #include "dsecs_01.hpp"
 
 struct Position {
@@ -23,13 +17,22 @@ struct Acceleration {
 
 int main()
 {
-    using namespace dsecs;
+    using namespace dsecs01;
 
     World world;
 
     auto pos = world.requireComponent<Position>();
     auto vel = world.requireComponent<Velocity>();
     auto acl = world.requireComponent<Acceleration>();
+
+    auto printAllEntities = [=,&world](){
+        for (auto e : world.allEntities()) {
+            std::cout << std::format("{:03}:   p<{:^8}>   v<{:^8}>", e,
+                (pos->values.contains(e)) ? std::format("{}, {}", pos->values[e].x, pos->values[e].y) : "_, _",
+                (vel->values.contains(e)) ? std::format("{}, {}", vel->values[e].x, vel->values[e].y) : "_, _"
+            ) << std::endl;
+        }
+    };
 
     world.makeSystem([=](World* w) {
         for (auto& [e, a] : acl->values) {
@@ -64,17 +67,14 @@ int main()
     vel->values[e3] = { 1.0, 0.0 };
     acl->values[e3] = { 0.0, 0.5 };
 
+    printAllEntities();
+
     world.update();
     world.update();
     world.update();
     world.update();
 
-    for (auto e : world.allEntities()) {
-        std::cout << std::format("{:03}:   p<{:^12}>   v<{:^12}>", e,
-            (pos->values.contains(e)) ? std::format("{:^+4}, {:^+4}", pos->values[e].x, pos->values[e].y) : " _ ,   _",
-            (vel->values.contains(e)) ? std::format("{:^+4}, {:^+4}", vel->values[e].x, vel->values[e].y) : " _ ,   _"
-        ) << std::endl;
-    }
+    printAllEntities();
 
     return 0;
 }

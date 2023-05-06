@@ -25,7 +25,8 @@
                 "${workspaceFolder}/bazel-500locol-ecs/external/catch/single_include/**",
                 "${workspaceFolder}/bazel-500locol-ecs/external/benchmark/include/**",
                 "${workspaceFolder}/bazel-500locol-ecs/external/flecs/**",
-                "${workspaceFolder}/bazel-500locol-ecs/external/pico/**"
+                "${workspaceFolder}/bazel-500locol-ecs/external/pico/**",
+                "${workspaceFolder}/bazel-500locol-ecs/external/entt/src/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",

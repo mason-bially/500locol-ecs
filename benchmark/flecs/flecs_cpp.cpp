@@ -7,10 +7,10 @@ template<BenchmarkSettings bs>
 static void flecs_cpp_A(benchmark::State& state) {
 
     TimeDelta delta = {1.0F / 60.0F};
-    std::vector<flecs::entity> vec;
-    vec.reserve(BMEntities * 1024);
-    std::vector<flecs::entity> out;
-    vec.reserve(BMEntities / 2);
+    std::unordered_set<flecs::id_t> set;
+    set.reserve(BMEntities * 1024);
+    std::vector<flecs::id_t> out;
+    out.reserve(BMEntities / 2);
 
     bench_or_once<bs, BenchmarkSettings::Init>(state,
     [&] {
@@ -48,16 +48,18 @@ static void flecs_cpp_A(benchmark::State& state) {
                     e.add<DataComponent>();
 
                 if constexpr (bs.MainType == BenchmarkSettings::Churn)
-                    vec.push_back(e);
+                    set.emplace(e);
             }
 
             if constexpr (bs.MainType == BenchmarkSettings::Churn) {
-                std::sample(vec.begin(), vec.end(),
+                std::sample(set.begin(), set.end(),
                     std::back_inserter(out), BMEntities / 2,
                     m_eng
                 );
-                for (auto e : out)
-                    e.destruct();
+                for (auto e : out) {
+                    (flecs::entity{world, e}).destruct();
+                    set.erase(e);
+                }
                 out.clear();
             }
 
@@ -69,5 +71,5 @@ static void flecs_cpp_A(benchmark::State& state) {
 
 BENCHMARK(flecs_cpp_A<BsUpdate>);
 BENCHMARK(flecs_cpp_A<BsInit>);
-BENCHMARK(flecs_cpp_A<BsExpand>);
-BENCHMARK(flecs_cpp_A<BsChurn>);
+BENCHMARK(flecs_cpp_A<BsExpand>)->Iterations(BMChurnIter);
+BENCHMARK(flecs_cpp_A<BsChurn>)->Iterations(BMChurnIter);

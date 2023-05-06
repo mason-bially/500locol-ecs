@@ -55,10 +55,10 @@ template<BenchmarkSettings bs>
 static void picoecs_A(benchmark::State& state) {
 
     TimeDelta delta = {1.0F / 60.0F};
-    std::vector<ecs_id_t> vec;
-    vec.reserve(BMEntities * 1024);
+    std::unordered_set<ecs_id_t> set;
+    set.reserve(BMEntities * 1024);
     std::vector<ecs_id_t> out;
-    vec.reserve(BMEntities / 2);
+    out.reserve(BMEntities / 2);
 
     bench_or_once<bs, BenchmarkSettings::Init>(state,
     [&] {
@@ -92,16 +92,18 @@ static void picoecs_A(benchmark::State& state) {
                     ecs_add(ecs, e, dat_man);
 
                 if constexpr (bs.MainType == BenchmarkSettings::Churn)
-                    vec.push_back(e);
+                    set.emplace(e);
             }
 
             if constexpr (bs.MainType == BenchmarkSettings::Churn) {
-                std::sample(vec.begin(), vec.end(),
+                std::sample(set.begin(), set.end(),
                     std::back_inserter(out), BMEntities / 2,
                     m_eng
                 );
-                for (auto e : out)
+                for (auto e : out) {
                     ecs_destroy(ecs, e);
+                    set.erase(e);
+                }
                 out.clear();
             }
 
@@ -120,8 +122,8 @@ static void picoecs_A(benchmark::State& state) {
 
 BENCHMARK(picoecs_A<BsUpdate>);
 BENCHMARK(picoecs_A<BsInit>);
-BENCHMARK(picoecs_A<BsExpand>);
-BENCHMARK(picoecs_A<BsChurn>);
+BENCHMARK(picoecs_A<BsExpand>)->Iterations(BMChurnIter);
+BENCHMARK(picoecs_A<BsChurn>)->Iterations(BMChurnIter);
 
 
 #define PICO_ECS_MAX_SYSTEMS 16

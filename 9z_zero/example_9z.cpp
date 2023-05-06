@@ -1,12 +1,6 @@
 
 #include <iostream>
-#ifdef _MSC_VER
-    #include <format>
-#else // compatability support:
-    #define FMT_HEADER_ONLY
-    #include <fmt/format.h>
-    namespace std { using namespace fmt; }
-#endif
+#include "compat/format"
 #include "dsecs_9z.hpp"
 
 struct Position {

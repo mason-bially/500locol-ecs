@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bazel-bin/benchmark",
-            "args": [],
+            "args": ["--benchmark_filter=entt"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",
             "environment": [],

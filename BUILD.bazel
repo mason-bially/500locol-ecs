@@ -6,6 +6,13 @@ CPPOPTS = select({
 })
 
 cc_library(
+    name = "compat",
+    hdrs = glob(["compat/*"]),
+    deps = ["@boost//:container"],
+    copts = CPPOPTS,
+)
+
+cc_library(
     name = "dsecs",
     hdrs = ["dsecs.hpp"],
     copts = CPPOPTS,
@@ -28,19 +35,21 @@ cc_binary(
 cc_binary(
     name = "example_01_trinity",
     srcs = ["01_trinity/dsecs_01.hpp", "01_trinity/example_01.cpp"],
+    deps = [":compat"],
     copts = CPPOPTS,
 )
 
 cc_binary(
     name = "example_9z_zero",
     srcs = ["9z_zero/dsecs_9z.hpp", "9z_zero/example_9z.cpp"],
+    deps = [":compat"],
     copts = CPPOPTS,
 )
 
 cc_binary(
     name = "benchmark",
     srcs = glob(["benchmark/**/*.h*", "benchmark/**/*.c*"])
-        + ["01_trinity/dsecs_01.hpp", "9z_zero/dsecs_9z.hpp"],
+        + ["dsecs.hpp", "01_trinity/dsecs_01.hpp", "9z_zero/dsecs_9z.hpp"],
     copts = CPPOPTS,
-    deps = ["@benchmark", "@flecs", "@pico//:ecs"],
+    deps = [":compat", "@benchmark", "@flecs", "@pico//:ecs", "@entt"],
 )

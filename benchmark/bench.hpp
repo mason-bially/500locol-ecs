@@ -1,13 +1,9 @@
 #include <random>
-#ifdef _MSC_VER
-    #include <format>
-#else // compatability support:
-    #define FMT_HEADER_ONLY
-    #include <fmt/format.h>
-    namespace std { using namespace fmt; }
-#endif
+#include <unordered_set>
+#include "compat/format"
 
-constexpr size_t BMEntities = 512; //16 * 1024;
+constexpr size_t BMEntities = 16 * 1024;
+constexpr size_t BMChurnIter = 100;
 
 using TimeDelta = double;
 

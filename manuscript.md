@@ -89,11 +89,11 @@ Most readers will likely note at least one of the problems of calling these equi
 
 ## The Trinity
 
-Now lets actually implement an ECS, we'll start by implementing the basic trinity of concepts, and then build up from there.
+Now lets actually implement an ECS, we'll start by implementing the Core trinity of ECS ideas—entity, component, and system—and then build up and improve from there iteratively.
 
 ### Entities
 
-Entities are our equivalent of objects. Or more specifically, they are similar to *pointers* to objects. However, unlike pointers, they are opaque, making them a form of resource handle. From the view of an ECS as an in memory database, they would be unique row ids.
+Entities are our equivalent of objects. Or more specifically, they are similar to *pointers* to objects. However, unlike pointers, they are opaque, making them actually more similar to a resource handle. From the view of ECS as an in memory database, entities would be unique row ids.
 
 ```c++
 using Entity = uint64_t;
@@ -101,21 +101,23 @@ using Entity = uint64_t;
 
 Well that was easy.
 
-The choice of a 64 bit integer in this case is because that is the width of a register in most common architectures. We could have also used `size_t` or `uintptr_t` here, each for different reasons.
+The choice of a 64 bit integer in this case is because that is the width of a register in most common architectures. We could have also used `size_t` or `uintptr_t` here for the same outcome—each for a different reason.
 
-Of course it's not that simple, we also need a way to allocate new ones.
+Of course it's not as simple as a type definition, we also need a way to allocate new ones.
 
 ```c++
 class World {
         Entity _nextEntity = 1;
     public:
-        Entity newEntity() { return _nextEntity++; }
+        auto newEntity() /* -> Entity */ { return _nextEntity++; }
+        // Note: We will always use `auto` or `void` on the left of function definitions.
+        //   Return types that need to be explicitly specified will be placed using arrow syntax on the right, as shown (though unneeded here).
 };
 ```
 
 Well, that was also pretty easy!
 
-Note that we skip 0 simply so that we can use it as a "no entity" in the future, which we should probably formalize.
+Note that we skip `0` simply so that we can use it as a "no entity" sentinal in the future (e.g. `null`), which we should probably formalize.
 
 ```c++
 constexpr Entity NoEntity = 0;
@@ -124,19 +126,25 @@ constexpr Entity NoEntity = 0;
 Incidentally, due to our use of C++, this works already:
 
 ```c++
+/*** EXAMPLE ***/
+
 Entity e = findEntity("nothing"); // assuming this method existed
 if (e) {
-
+    // entity is not `NoEntity` e.g. it exists
 }
 ```
 
 ### Components
 
-Components are groups of data we wish an entity to have. In object oriented programming this is similar to the pattern of composition. For our purposes any plain old data object will be a valid component, as well as anything that acts like a value type (implements the rule of three/five/zero).
+Components are groups of data we wish an entity to have. From the view of the object oriented paradigm, this is similar to the composition pattern (which C++ supports directly through multiple inheritence).
 
-Some user code of components might look like this:
+For our purposes anything that acts like a value type (implements the rule of three/five/zero) will be usable as a component. As a consequence of C++'s design, any plain old data type (e.g classic C `struct`s) will automatically be a valid component.
+
+Some user code of custom components might look like this:
 
 ```c++
+/*** USER CODE ***/
+
 struct Position {
     float x, y; // could also be a vector value type, ala `glm::vec2`
 };
@@ -150,9 +158,12 @@ struct Acceleration {
 };
 ```
 
-Note that this would be user code and not library code. What we want for each user defined component is something along the following lines.
+Note that this would be user code and not library code. It would appear after the definition of the library, and our library cannot make assumptions of their existence.
+
+What we then want from our ECS, for each user defined component, is something along the following lines.
 
 ```c++
+/*** EXAMPLE ***/
 #include <unordered_map>
 
 class EgWorld {
@@ -163,9 +174,9 @@ class EgWorld {
 }
 ```
 
-A struct of arrays, and we are using `std::unordered_map` in the place of an array this time. We'll come back to why this is the right data structure, and optimizing it further later, but for now we are merely concerned with making this work.
+A struct of arrays. We are using `std::unordered_map` in the place of an array for now—we'll come back to why this was the right data structure to choose later, when we optimize the storage aspect of our design. But for now we are merely concerned with the core minimum we need to have a working example. The critical aspect of our design here is the struct of arrays pattern, which is what allows our ECS to have strong performance gains.
 
-The problem here is that we don't know what component types (the `Position`) the user will want. We want users to be able to create arbitrary components using their own `struct` definitions. To do this we will need to manage the storage of components at runtime, dynamically creating the structure containing the arrays. And because it involves user defined input types, we'll also need to use templates.
+The problem here is that we don't know what component types (e.g. `Position`) the user will want. We want users to be able to create arbitrary components using their own component definitions. To do this we will need to manage the storage of components at runtime, dynamically creating the structure containing the arrays. And because this will involve user defined input types, we'll have to use templates to do it.
 
 ```c++
 struct ComponentManagerBase {
@@ -180,11 +191,27 @@ struct ComponentManager : ComponentManagerBase {
 };
 ```
 
-These managers represent one array field in the dynamic structure.
+These managers represent one member field (e.g. `std::unordered_map<Entity, Position> positions;`) in the dynamic structure.
 
-The design of the "manager" here uses inheritance and virtual functions to manage the actual components in a polymorphic way. Currently the only thing we need the `ComponentManagerBase` for is being able to properly destroy all the component data when the world is deleted. We can do this because the *user* will always know the types of the data they want, and so they can simply access the concrete type. This also leaves the door open for user customized component managers.
+The design of the "manager" here uses inheritance and virtual functions to allow manipulation of the actual components without the manipulating code knowing the actual types of the components. Currently the only thing we need the `ComponentManagerBase` for is being able to properly destroy all the component data when the world is deleted, this is automatically done by the compiler and standard library via the virtual destructors.
 
-Now we can make the actual dynamic structure of arrays.
+It's important to understand that we can do this because the *user* will always know the types of the data they want, and so they can simply access the concrete type. The instantiation of the concrete type will generate the necessary virtual functions using our template.
+
+{{
+TODO FOOTNOTE This design also leaves the door open for user customized component managers through template specialization.
+
+```c++
+/*** EXAMPLE ***/
+template<>
+struct ComponentManager<MySpecialComponent> : ComponentManagerBase {
+    std::flat_map<Entity, TComp> values; // a data structure we will be using later
+
+    virtual ~ComponentManager() = default;
+};
+```
+}}
+
+Now we can make the actual dynamic structure of arrays, and a function to help access it.
 
 ```c++
 #include <memory>
@@ -195,9 +222,8 @@ class World {
         template<typename TComp>
         auto requireComponent() -> std::shared_ptr<ComponentManager<TComp>> {
             auto key = typeid(TComp).hash_code();
-            auto it = _components.find(key);
-            if (it != _components.end())
-                // this static cast is safe because we index by typeid
+            if (auto it = _components.find(key); it != _components.end()) // already exists
+                // this static cast is safe because we indexed by typeid
                 return std::static_pointer_cast<ComponentManager<TComp>>(it->second);
             auto res = std::make_shared<ComponentManager<TComp>>();
             _components[key] = res;
@@ -206,13 +232,21 @@ class World {
 };
 ```
 
-We use a single function to both make and retrieve our component managers. This way users can be confident in using any type as components.
+We use a single function to both make and retrieve our component managers. This way users can be confident in using any type as components without concern for if it was initalized at first or not.
 
-(TODO: footnote) One note is that our use of `typeid` will require run time type information. It is the opinion of the authors that built in run time type information is not a notable burden if used appropriately, especially for smaller teams. It's also useful as a standard way to communicate ideas, hence our use of it here. Any reflection system that can provide a unique ID for a type will suffice for the purposes of this book, feel free to use a custom one.
+{{
+TODO FOOTNOTE `if(<var-def>; <condition>)` is a recent C++ addition that allows for the creation of `if`-block scoped variables that are used within the condition. The best way to understand the syntax here is to consider the similar `for` syntax `for(<var-def>; <condition>; <increment>)`. The `var-def` section behaves similarly in both keywords.
+}}
 
-This function is a relatively standard pattern of find and return, or make, insert, and return; the iterator is used to prevent duplicate lookups. We use the hashcode of the type as the key, and we use a shared pointer for safety and simplicity. Note that we return the exact type of the component manager, even if we have to downcast it, this is so the *user* can use the type specific `ComponentManager` interface.
+{{
+TODO FOOTNOTE Our use here of `typeid()` will require run time type information. It is the opinion of the authors that built in run time type information is not a notable burden if used appropriately, especially for smaller teams. It's also useful as a conventional way to communicate ideas, hence our use of it here. Any reflection system that can provide a unique ID for a type will suffice for the purposes of this book, feel free to use a custom one.
+}}
+
+This function is a relatively standard pattern of find, make it not extant, and return by using the iterator to prevent duplicate lookups while allowing us to check for existence. We use the hashcode of the component type as the key, and we use a shared pointer for safety and simplicity. Note that we return the exact type of the component manager, even if we have to downcast it, this is so the *user* can use the type specific `ComponentManager` interface allowing convient direct access to the component values.
 
 ```c++
+/*** USER CODE ***/
+
 World world;
 
 auto pos = world.requireComponent<Position>();
@@ -220,9 +254,11 @@ auto vel = world.requireComponent<Velocity>();
 auto acl = world.requireComponent<Acceleration>();
 ```
 
-The user can now access the component managers, every `world.requireComponent<Position>()` will be the same manager and data, so long as the world object is the same. We now have a very straight forward ECS interface.
+The user can now access the components, every call to `world.requireComponent<Position>()` will return the same manager and data, so long as the world object is the same. We now have a very straight forward ECS interface through the exposed `std::unordered_map` container.
 
 ```c++
+/*** USER CODE ***/
+
 Entity e0 = world.newEntity();
 pos->values[e0] = { 0.0, 3.0 };
 Entity e1 = world.newEntity();
@@ -248,27 +284,33 @@ class World {
 };
 ```
 
-... we can even start displaying some information.
+... we can even start displaying some diagnostic information.
 
 ```c++
+/*** USER CODE ***/
+
 #include <iostream>
 #include <format>
 
-for (auto e : world.allEntities()) {
-    std::cout << std::format("{:03}:   p<{:^8}>   v<{:^8}>", e,
-        (pos->values.contains(e)) ? std::format("{}, {}", pos->values[e].x, pos->values[e].y) : "_, _",
-        (vel->values.contains(e)) ? std::format("{}, {}", vel->values[e].x, vel->values[e].y) : "_, _"
-    ) << std::endl;
-}
+auto printAllEntities = [=,&world](){
+    for (auto e : world.allEntities()) {
+        std::cout << std::format("{:03}:   p<{:^8}>   v<{:^8}>", e,
+            (pos->values.contains(e)) ? std::format("{}, {}", pos->values[e].x, pos->values[e].y) : "_, _",
+            (vel->values.contains(e)) ? std::format("{}, {}", vel->values[e].x, vel->values[e].y) : "_, _"
+        ) << std::endl;
+    }
+};
 ```
 
-The above display method is notably inefficient. While the `.contains()` method is useful, it's also very inefficient as a check for the existence of a component if the point is to then *use* that component. Especially if we then look up the component more than once, this is why we re-used the iterator in `requireComponent()`. However, since this is user code, this is actually a library problem (since we don't provide a more convenient method), so we'll work on fixing this up later.
+The above display method is notably inefficient. While the `.contains()` method is useful, it's also very inefficient as a check for the existence of a component if the point is to then *use* that component. Especially if we then lookup the component more than once (e.g. to access both it's properties), this is why we re-used the iterator in `requireComponent()`. However, since this is user code, this is actually a library problem (since we don't provide a more convenient method), so we'll have to work on fixing this up later.
 
 ### Systems
 
-Systems are the chunks of logic we want our ECS to run. Specifically the logic that runs across the entire world. Logic that happens in response to triggers, like input or network events, are generally done outside of the world, using the API and an external entity variable to "randomly access" the relevant components. And while plenty of ECS libraries do provide mechanisms for this, it is not the strength of the paradigm, and we will not be adding them.
+Systems are the chunks of logic we want our ECS to run. Specifically the logic that runs across the entire world, every frame, to every entity with the relevant information.
 
-With some quick library code based on how we organized components earlier:
+Logic that happens in response to triggers, like input or network events, are generally done outside of the world, using the library API and an external entity variable to "randomly access" the relevant components. And while plenty of ECS libraries do provide additional mechanisms for this, it is not the strength of the paradigm, and we will not be focusing on them much.
+
+We will start with some quick library code, based on how we organized components earlier, to define what a system interface looks like:
 
 ```c++
 struct SystemBase {
@@ -278,9 +320,11 @@ struct SystemBase {
 };
 ```
 
-We can start thinking about some user code, which might look like this:
+We can start thinking about some user code, which might look like this, for example we might imagine the following:
 
 ```c++
+/*** EXAMPLE CODE ***/
+
 class VelocitySystem : SystemBase {
         std::shared_ptr<ComponentManager<Velocity>> _vel;
         std::shared_ptr<ComponentManager<Position>> _pos;
@@ -301,28 +345,33 @@ class VelocitySystem : SystemBase {
 }
 ```
 
-There are some issues with this user code, and we should be looking to simplify it with our library if we can. The constructor and variable definitions are especially egregious examples of boilerplate. But we also see a repeated lookup of our component values again. 
+There are some issues with this user code, and we should be looking to simplify it with our library if we can. Notably the constructor and variable definitions are especially egregious examples of verbose boilerplate. But we also see a repeated lookup of our component values again, though we won't get to fixing that till later.
 
-Continuing with what we want user code to look like, we would want something like following.
+Now with user code, we can continue and think about what we want our ECS to generate.
 
 ```c++
+/*** EXAMPLE CODE ***/
+
 class Game {
         World world;
+
+        /* constructor elided */
+
         VelocitySystem _velocitySystem;
         AccelerationSystem _accelerationSystem;
         Inputsystem _inputSystem;
     public:
         void update() {
-            _velocitySystem.update(&world);
-            _accelerationSystem.update(&world);
-            _inputSystem.update(&world);
+            _velocitySystem.update(&world); // dispatch of iteration
+            _accelerationSystem.update(&world); // dispatch of iteration
+            _inputSystem.update(&world); // dispatch of iteration
         }
 }
 ```
 
-A dispatches of iteration. We could see how the user could then expand the game with new systems one at a time and add them to this list. However, we want systems to be first-class objects in our design, such that the user doesn't have to write a bunch of boiler plate for each one, that's the job of the ECS library.
+A dispatches of iteration. We could see how the user could then expand the game with new systems one at a time and add them to this list. However, what we actually want is for systems to be first-class objects within our library, such that the user doesn't have to write a bunch of boiler plate for each one. Because that's the job of a library.
 
-To realize this we will repeat the same change we just made to components, we will make this into a dynamic dispatch list. Due to our declaration of `SystemBase` earlier this is trivial.
+To realize this we will repeat the same design pattern we just used for components, we will make this explicit structure into a dynamic list dispatches. Due to our declaration of `SystemBase` earlier this is trivial.
 
 ```c++
 class World {
@@ -336,16 +385,18 @@ class World {
 }
 ```
 
-We now have a dynamic dispatch list, ironically an iteration of dispatches (of iterations). The difference being that this iteration is fixed in size, regardless of how many game objects there are. And the iteration of game objects is still inside our system dispatches.
+We now have a dynamic dispatch list, ironically an iteration of dispatches (of iterations). The difference being that this iteration is fixed in size dependent on the design of the systems in question, regardless of how many game objects there are. Because the iteration of game objects is still inside our dispateched system `update()` calls.
 
 Now it would be nice to remove the need for users to define an entire class just to write an update method. Thankfully modern C++ has a tool that allows us to manipulate single methods like that quite nicely, the lambda. The ideal user code would then be something along the lines of:
 
 ```c++
+/*** USER CODE ***/
+
 // these variables were made earlier when we added components
 auto pos = world.requireComponent<Position>();
 auto vel = world.requireComponent<Velocity>();
 
-world.makeSystem([=](World* w) {
+world.makeSystem([=](World* w) { //`[=]` is syntax for default value binding closed over variables
     for (auto& [e, v] : vel->values) {
         if (pos->values.contains(e)) {
             auto& p = pos->values[e];
@@ -356,10 +407,11 @@ world.makeSystem([=](World* w) {
 });
 ```
 
-Note all the boiler plate is gone through the use of the lambda value binding (`[=]` uses value binding by default) the smart pointers. Each lambda will hold the smart pointer for as long as it exists. Otherwise the update code is exactly as it was. Enabling this is quite similar to how we did components as templated specializations:
+Note all the boiler plate is gone through the use of the lambda value binding the smart pointers. This means each lambda will hold the smart pointer for as long as it exists, preventing us from needing to worry about the clean up order of systems and components (since components should never point at systems, there should be no cycles). The update code itself is exactly as it was, but without repeated boilerplate.
+
+Enabling this library method will leverage a templated derived class quite similar to how we did components:
 
 ```c++
-
 template<std::invocable<class World*> FExec>
 struct SystemAnonymous : SystemBase {
     FExec execution;
@@ -382,11 +434,13 @@ class World {
 }
 ```
 
-Hopefully nothing here is that surprising, except perhaps the concept usage of `std::invovable<World*>`. This feature of C++20 helps us ensure that we are getting exactly what we expect, something which can be invoked when given a `World*`. Otherwise this should appear an entirely standard lambda wrapper and push to vector method.
+Hopefully nothing here is particularly surprising, except perhaps the usage of `std::invocable<World*>`, a C++20 `concept`. This feature of post-modern C++ helps ensure that we are getting exactly what we expect, something which can be invoked with a `World*` as the only argument. Otherwise this should appear as a relatively standard lambda wrapper and emplace to vector method.
 
 We now have all the pieces required to update our world:
 
 ```c++
+/*** USER CODE ***/
+
 // update the world four times
 world.update();
 world.update();
@@ -394,7 +448,13 @@ world.update();
 world.update();
 ```
 
-And with that we have completed the basic trinity. See [here](01_trinity/example_01.cpp) for the complete code example, and [here](01_trinity/dsecs_01.hpp) for the current library (`058loc`).
+And with that we have completed the basic trinity.
+
+- [Current Library](01_trinity/dsecs_01.hpp)
+- [Current Example](01_trinity/example_01.cpp)
+- Lines of Code: `057loc`
+- Update Performance: ~1.33x
+- Insert Performance: ~3.20x
 
 ## Ergonomics I
 

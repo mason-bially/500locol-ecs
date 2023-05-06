@@ -6,10 +6,10 @@ static void locol01_A(benchmark::State& state) {
     using namespace dsecs01;
 
     TimeDelta delta = {1.0F / 60.0F};
-    std::vector<uint64_t> vec;
-    vec.reserve(BMEntities * 1024);
-    std::vector<uint64_t> out;
-    vec.reserve(BMEntities / 2);
+    //std::unordered_set<uint64_t> set;
+    //set.reserve(BMEntities * 1024);
+    //std::vector<uint64_t> out;
+    //out.reserve(BMEntities / 2);
 
     bench_or_once<bs, BenchmarkSettings::Init>(state,
     [&] {
@@ -30,7 +30,7 @@ static void locol01_A(benchmark::State& state) {
 
         world.makeSystem([=](World* w) {
             for (auto& [e, d] : dat->values) {
-                if (pos->values.contains(e), vel->values.contains(e)) {
+                if (pos->values.contains(e) && vel->values.contains(e)) {
                     auto& p = pos->values[e];
                     auto& v = vel->values[e];
                     
@@ -64,4 +64,4 @@ static void locol01_A(benchmark::State& state) {
 
 BENCHMARK(locol01_A<BsUpdate>);
 BENCHMARK(locol01_A<BsInit>);
-BENCHMARK(locol01_A<BsExpand>);
+BENCHMARK(locol01_A<BsExpand>)->Iterations(BMChurnIter);

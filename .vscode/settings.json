@@ -91,6 +91,7 @@
         "bitset": "cpp",
         "shared_mutex": "cpp",
         "semaphore": "cpp",
-        "codecvt": "cpp"
+        "codecvt": "cpp",
+        "flat_map": "cpp"
     }
 }

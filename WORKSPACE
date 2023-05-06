@@ -7,6 +7,19 @@ http_archive(
     sha256 = "91e3e0610572adefa301a6e55ac48ab0a3c8ff61787ce6930e346ff36e86905c",
     strip_prefix = "Catch2-5e6488fd9949cb41d717a72c8c4603b7e37d68cd",
 )
+
+
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+http_archive(
+    name = "com_github_nelhage_rules_boost",
+    url = "https://github.com/nelhage/rules_boost/archive/9c1e42a7d1fa1a9778aa91e5450f6d204936fe8b.tar.gz",
+    strip_prefix = "rules_boost-9c1e42a7d1fa1a9778aa91e5450f6d204936fe8b",
+    sha256 = "ff627f3013adb8096d845ef0cfd12a9327fa48d90db501671d5c756b9d1b990b",
+)
+load("@com_github_nelhage_rules_boost//:boost/boost.bzl", "boost_deps")
+boost_deps()
+
+
 git_repository(
     name = "benchmark",
     remote = "git@github.com:google/benchmark.git",
@@ -29,6 +42,20 @@ cc_library(
     name = "ecs",
     visibility = ["//visibility:public"],
     hdrs = ["pico_ecs.h"],
+)
+    """,
+)
+new_git_repository(
+    name = "entt",
+    remote = "git@github.com:skypjack/entt.git",
+    commit = "fef921132cae7588213d0f9bcd2fb9c8ffd8b7fc",
+    shallow_since = "1669969760 +0100",
+    build_file_content = """
+cc_library(
+    name = "entt",
+    visibility = ["//visibility:public"],
+    hdrs = glob(["src/**/*.h", "src/**/*.hpp"]),
+    strip_include_prefix = "src",
 )
     """,
 )

@@ -1,0 +1,9 @@
+#include <version>
+
+#if __cpp_lib_format > 201907L
+    #include <format>
+#else // compatability support:
+    #define FMT_HEADER_ONLY
+    #include <fmt/format.h>
+    namespace std { using namespace fmt; }
+#endif

@@ -1,6 +1,6 @@
 # DSECS: Dead Simple Entity-Component-System framework.
 
-Skip to [Philosophy](#Philosophy) for the currently edited section. Beware wandering past [THE LINE](#—THE_LINE—).
+Skip to [Philosophy](#Philosophy) for the currently edited section. Beware wandering past [THE LINE](#the-line).
 
 ## Background
 

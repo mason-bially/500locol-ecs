@@ -1,9 +1,9 @@
 #include "locol.hpp"
-#include "01_trinity/dsecs_01.hpp"
+#include "03_trinity/dsecs_03.hpp"
 
 template<BenchmarkSettings bs>
-static void locol01_A(benchmark::State& state) {
-    using namespace dsecs01;
+static void locol03_A(benchmark::State& state) {
+    using namespace dsecs03;
 
     TimeDelta delta = {1.0F / 60.0F};
     //std::unordered_set<uint64_t> set;
@@ -62,6 +62,6 @@ static void locol01_A(benchmark::State& state) {
     });
 }
 
-BENCHMARK(locol01_A<BsUpdate>);
-BENCHMARK(locol01_A<BsInit>);
-BENCHMARK(locol01_A<BsExpand>)->Iterations(BMChurnIter);
+BENCHMARK(locol03_A<BsUpdate>);
+BENCHMARK(locol03_A<BsInit>);
+BENCHMARK(locol03_A<BsExpand>)->Iterations(BMChurnIter);

@@ -6,7 +6,7 @@
 #include <string>
 
 // dead simple ecs
-namespace dsecs01 {
+namespace dsecs03 {
     /* entity trinity */
 
     using Entity = uint64_t;

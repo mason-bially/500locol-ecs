@@ -8,7 +8,7 @@
 #include <concepts>
 
 // dead simple ecs
-namespace dsecs {
+namespace dsecs0e {
     /* concepts forward declare */
     template <typename T>
     concept Streamable = requires(std::ostream &os, T value) {
@@ -35,21 +35,19 @@ namespace dsecs {
     };
 
     template<typename TComp>
-    struct ComponentManager final : ComponentManagerBase {
+    struct ComponentManager : ComponentManagerBase {
         std::unordered_map<Entity, TComp> values; // the actual array
 
         ComponentManager(std::string_view name)
             : ComponentManagerBase(name), values() { }
         virtual ~ComponentManager() = default;
 
-        virtual auto has(Entity e) const -> bool override final { return values.contains(e); }
-        virtual void del(Entity e) override final { values.erase(e); }
-
         void with(Entity e, std::invocable<TComp&> auto chain) {
             if (auto it = values.find(e); it != values.end())
                 chain(it->second); // reuse the found iterator/lookup
         }
 
+        virtual auto has(Entity e) const -> bool override { return values.contains(e); }
         virtual auto str(Entity e) const -> std::string override {
             if (auto it = values.find(e); it != values.end())
                 if constexpr (Streamable<TComp>) {
@@ -61,6 +59,7 @@ namespace dsecs {
             else
                 return "<NULL>";
         }
+        virtual void del(Entity e) override { values.erase(e); }
     };
 
     /* system trinity */

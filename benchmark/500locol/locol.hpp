@@ -19,17 +19,15 @@ inline void locol_bm_A(benchmark::State& state) {
 
         world.makeSystem("updatePosition", [=,&delta](World* w) {
             for (auto& [e, v] : vel->values) {
-                if (pos->values.contains(e)) {
-                    auto& p = pos->values[e];
-
+                pos->with(e, [=](auto& p) {
                     updatePosition(p, v, delta);
-                }
+                });
             }
         });
 
         world.makeSystem("updateComponents", [=](World* w) {
             for (auto& [e, d] : dat->values) {
-                if (pos->values.contains(e), vel->values.contains(e)) {
+                if (pos->values.contains(e) && vel->values.contains(e)) {
                     auto& p = pos->values[e];
                     auto& v = vel->values[e];
                     

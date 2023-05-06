@@ -28,13 +28,34 @@ cc_test(
 cc_binary(
     name = "example",
     srcs = ["dsecs.hpp", "example.cpp"],
+    deps = [":compat"],
     copts = CPPOPTS,
 )
 
+cc_binary(
+    name = "benchmark",
+    srcs = glob(["benchmark/**/*.h*", "benchmark/**/*.c*"])
+    + ["dsecs.hpp",
+        "03_trinity/dsecs_03.hpp",
+        "0e_ergonomics1/dsecs_0e.hpp",
+        "9z_zero/dsecs_9z.hpp"
+    ],
+    copts = CPPOPTS,
+    deps = [":compat", "@benchmark", "@flecs", "@pico//:ecs", "@entt"],
+)
+
+
 
 cc_binary(
-    name = "example_01_trinity",
-    srcs = ["01_trinity/dsecs_01.hpp", "01_trinity/example_01.cpp"],
+    name = "example_03_trinity",
+    srcs = ["03_trinity/dsecs_03.hpp", "03_trinity/example_03.cpp"],
+    deps = [":compat"],
+    copts = CPPOPTS,
+)
+
+cc_binary(
+    name = "example_0e_ergonomics",
+    srcs = ["0e_ergonomics1/dsecs_0e.hpp", "0e_ergonomics1/example_0e.cpp"],
     deps = [":compat"],
     copts = CPPOPTS,
 )
@@ -44,12 +65,4 @@ cc_binary(
     srcs = ["9z_zero/dsecs_9z.hpp", "9z_zero/example_9z.cpp"],
     deps = [":compat"],
     copts = CPPOPTS,
-)
-
-cc_binary(
-    name = "benchmark",
-    srcs = glob(["benchmark/**/*.h*", "benchmark/**/*.c*"])
-        + ["dsecs.hpp", "01_trinity/dsecs_01.hpp", "9z_zero/dsecs_9z.hpp"],
-    copts = CPPOPTS,
-    deps = [":compat", "@benchmark", "@flecs", "@pico//:ecs", "@entt"],
 )

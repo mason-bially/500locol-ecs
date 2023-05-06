@@ -1,7 +1,7 @@
 
 #include <iostream>
 #include "compat/format"
-#include "dsecs.hpp"
+#include "dsecs_0e.hpp"
 
 struct Position {
     float x, y;
@@ -44,7 +44,7 @@ auto& operator<<(std::ostream& os, HealthStatus h) {
 
 int main()
 {
-    using namespace dsecs;
+    using namespace dsecs0e;
 
     World world;
 

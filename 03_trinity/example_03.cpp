@@ -1,7 +1,7 @@
 
 #include <iostream>
 #include "compat/format"
-#include "dsecs_01.hpp"
+#include "dsecs_03.hpp"
 
 struct Position {
     float x, y;
@@ -17,7 +17,7 @@ struct Acceleration {
 
 int main()
 {
-    using namespace dsecs01;
+    using namespace dsecs03;
 
     World world;
 

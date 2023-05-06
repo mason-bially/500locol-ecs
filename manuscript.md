@@ -450,6 +450,8 @@ world.update();
 world.update();
 ```
 
+### The Trinity Complete
+
 And with that we have completed the basic trinity.
 
 - [Current Library](01_trinity/dsecs_01.hpp)
@@ -457,17 +459,6 @@ And with that we have completed the basic trinity.
 - Lines of Code: `057loc`
 - Update Performance: ~1.33x
 - Insert Performance: ~3.20x
-
-# —THE LINE—
-
-- Everything above the line is working draft *at worst*. Everything beyond the line is rough draft *at best*.
-- Everything above the line is *probably close* to the final text. Everything beyond the line is *probably trash* that I will delete or re-write.
-
-<div align="left">
-      <a href="https://www.youtube.com/watch?v=H8yQhXDquII">
-         <img src="https://img.youtube.com/vi/H8yQhXDquII/0.jpg" style="width:100%;">
-      </a>
-</div>
 
 ## Ergonomics I
 
@@ -611,11 +602,10 @@ Another straight forward change to our constructors and a base object name. This
 // replacing our old definition of this system
 world.makeSystem("velocity", [=](World* w) {
     for (auto& [e, v] : vel->values) {
-        if (pos->values.contains(e)) {
-            auto& p = pos->values[e];
+        pos->with(e, [=](auto& p) {
             p.x += v.x;
             p.y += v.y;
-        }
+        });
     }
 });
 
@@ -822,9 +812,7 @@ We have another problem of course, the components need a way to delete things wi
 
     template<typename TComp>
     struct ComponentManager : ComponentManagerBase {
-        virtual void del(Entity e) override {
-            values.erase(e);
-        }
+        virtual void del(Entity e) override { values.erase(e); }
     };
 ```
 
@@ -835,18 +823,62 @@ if (h.current_pct <= 0.5 * health_point_pct) // less than 0.5 health points, thi
     w->kill(e); // our iterator is now invalidated, the h (and e!) above are now invalid because they were taken by reference.
 ```
 
-We'll have to remember that this invalidates iterators on the entity.
+We'll have to remember that this invalidates iterators on the entity. And deal with the issue in general at a later time.
 
-### Actual API
+### Ergonomics I Complete
+
+And with that we have completed the basic trinity.
+
+- [Current Library](0e_ergonomics1/dsecs_0e.hpp)
+- [Current Example](0e_ergonomics1/example_0e.cpp)
+- Lines of Code: `121loc`
+- Update Performance: ~1.33x
+- Insert Performance: ~3.20x
+
+# —THE LINE—
+
+- Everything above the line is working draft *at worst*. Everything beyond the line is rough draft *at best*.
+- Everything above the line is *probably close* to the final text. Everything beyond the line is *probably trash* that I will delete or re-write.
+
+<div align="left">
+      <a href="https://www.youtube.com/watch?v=H8yQhXDquII">
+         <img src="https://img.youtube.com/vi/H8yQhXDquII/0.jpg" style="width:100%;">
+      </a>
+</div>
+
+## API Stability
+
+Currently parts of our implementation implictly form part of our API. To enable future improvements we'll need to stablize our API.
+
+### Actual Component API
 
 We have been moving towards this for a bit, but it's time to finally have an actual API for the components.
 
+We already have a partial API in `has` and `del`. Of course one problem with them is that they are virtual functions, which will cause a performance penalty for their use.
 
-### Events
+```c++
+template<typename TComp>
+struct ComponentManager /* added */ final : ComponentManagerBase {
+    virtual auto has(Entity e) const -> bool override /* added */ final { return values.contains(e); }
+    virtual void del(Entity e) override /* added */ final { values.erase(e); }
+}
+```
 
-One last important form of ergonomics we could use are events. Ways to respond to various changes automatically. Now that we have an API, we can do this step.
 
 
+### Actual System API
+
+Before we can implement this, we first need to have an actual API for the systems, one that allows them to express their desire for access to more than one component.
+
+## Archetypes
+
+It's time to address the elephant in the room. This is slow.
+
+```
+
+```
+
+### A New Manager Type
 
 ## Meta Entities
 
@@ -858,13 +890,20 @@ One last important form of ergonomics we could use are events. Ways to respond t
 
 {and names}
 
+## Archetype Performance
+
+### Inverting the Paradigm
+
 ## Ergonomics II
+
+### Events
+
+One last important form of ergonomics we could use are events. Ways to respond to various changes automatically. Now that we have an API, we can do this step.
+
+Compare to Getters/Setters, ways to add custom behaviour in reaction to things.
 
 ### System Ordering
 
 ### Tags
 
 ### Indexes
-
-## Archetypes
-

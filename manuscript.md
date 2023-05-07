@@ -848,7 +848,7 @@ And with that we have completed the basic trinity.
 
 ## API Stability
 
-Currently parts of our implementation implictly form part of our API. To enable future improvements we'll need to stablize our API.
+Currently parts of our implementation implictly form part of our API. To enable future improvements we'll need to stablize our API. We will also take this oppertunity to reorganize some aspects of it.
 
 ### Actual Component API
 
@@ -864,11 +864,26 @@ struct ComponentManager /* added */ final : ComponentManagerBase {
 }
 ```
 
+By using final we ensure the compiler has all the hints we can give it that this virtual function should be de-virtualized when called on the derived type. Which is the type users will be using to interact directly with components. 
 
+```c++
+template<typename TComp>
+struct ComponentManager final : ComponentManagerBase {
+    auto get(Entity e) const -> TComp const& { return values.at(e); }
+    auto mut(Entity e) -> TComp& { return values.at(e); }
+    void set(Entity e, TComp&& v) { values.insert_or_assign(e, v); }
+}
+```
+
+For the moment this interface is relatively simple. However some operations, especially `set()` and `del()`, may need additional functionality in the future. We also distinguish between `get()` and `mut()`, seperating out the `at()` overload, so that we can make distinctions between possible writes and pure reads.
 
 ### Actual System API
 
-Before we can implement this, we first need to have an actual API for the systems, one that allows them to express their desire for access to more than one component.
+Before we can implement improvements to our access to components, we first need to have an actual API for systems to communicate the components they will be accessing. Preferably this interface will not involve repeated expression of our intent.
+
+Another issue is our inability to forward important information from our update call, like the delta time for the update.
+
+To do this we will use 
 
 ## Archetypes
 

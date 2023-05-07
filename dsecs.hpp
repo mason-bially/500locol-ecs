@@ -30,8 +30,9 @@ namespace dsecs {
         virtual ~ComponentManagerBase() = default;
 
         virtual auto has(Entity e) const -> bool = 0;
-        virtual auto str(Entity e) const -> std::string = 0;
         virtual void del(Entity e) = 0;
+        
+        virtual auto str(Entity e) const -> std::string = 0;
     };
 
     template<typename TComp>
@@ -44,6 +45,10 @@ namespace dsecs {
 
         virtual auto has(Entity e) const -> bool override final { return values.contains(e); }
         virtual void del(Entity e) override final { values.erase(e); }
+
+        auto get(Entity e) const -> TComp const& { return values.at(e); }
+        auto mut(Entity e) -> TComp& { return values.at(e); }
+        void set(Entity e, TComp&& v) { values.insert_or_assign(e, v); }
 
         void with(Entity e, std::invocable<TComp&> auto chain) {
             if (auto it = values.find(e); it != values.end())

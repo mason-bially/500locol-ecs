@@ -20,6 +20,8 @@ Discuss performance costs of cache prefetch
 
 ### Philosophy
 
+##### Structure of Arrays
+
 One dichotomy that is useful to understand the idea of an ECS with is that of Arrays of Structs (AoS) versus Structs of Arrays (SoA). Which are exactly what they sound like.
 
 ```c++
@@ -49,6 +51,8 @@ A struct of arrays provides better data locality. We can now iterate every value
 It should be obvious that these examples are functionally equivalent, even if their representations are often quite different. Some programming languages are working to add features that make swapping between the two simpler. TODO expand on the idea of semantic complexity and equivalency and programming languages.
 
 Astute readers may have noted a complication with our claim of equivalency: while *these* code examples may be equivalent, the use of objects (by way of a pointer) in an array is not so easily transformed into a SoA style. That is the point of an ECS runtime, specifically the **Components** aspect of it.
+
+##### Dispatch of Iteration
 
 An important related corollary to the AoS vs. SoA dichotomy is the Iteration of Dispatches (IoD) versus Dispatches of Iteration (DoL). Which are bit more esoteric and involved.
 

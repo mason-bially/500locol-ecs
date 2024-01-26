@@ -123,7 +123,7 @@ class World {
 
 Well, that was also pretty easy!
 
-Note that we skip `0` simply so that we can use it as a "no entity" sentinal in the future (e.g. `null`), which we should probably formalize.
+Note that we skip `0` simply so that we can use it as a "no entity" sentinel in the future (e.g. `null`), which we should probably formalize.
 
 ```c++
 constexpr Entity NoEntity = 0;
@@ -142,7 +142,7 @@ if (e) {
 
 ### Components
 
-Components are groups of data we wish an entity to have. From the view of the object oriented paradigm, this is similar to the composition pattern (which C++ supports directly through multiple inheritence).
+Components are groups of data we wish an entity to have. From the view of the object oriented paradigm, this is similar to the composition pattern (which C++ supports directly through multiple inheritance).
 
 For our purposes anything that acts like a value type (implements the rule of three/five/zero) will be usable as a component. As a consequence of C++'s design, any plain old data type (e.g classic C `struct`s) will automatically be a valid component.
 
@@ -238,17 +238,17 @@ class World {
 };
 ```
 
-We use a single function to both make and retrieve our component managers. This way users can be confident in using any type as components without concern for if it was initalized at first or not.
+We use a single function to both make and retrieve our component managers. This way users can be confident in using any type as components without concern for if it was initialized at first or not.
 
 {{
 TODO FOOTNOTE `if(<var-def>; <condition>)` is a recent C++ addition that allows for the creation of `if`-block scoped variables that are used within the condition. The best way to understand the syntax here is to consider the similar `for` syntax `for(<var-def>; <condition>; <increment>)`. The `var-def` section behaves similarly in both keywords.
 }}
 
 {{
-TODO FOOTNOTE Our use here of `typeid()` will require run time type information. It is the opinion of the authors that built in run time type information is not a notable burden if used appropriately, especially for smaller teams. It's also useful as a conventional way to communicate ideas, hence our use of it here. Any reflection system that can provide a unique ID for a type will suffice for the purposes of this book, feel free to use a custom one.
+TODO FOOTNOTE Our use here of `typeid()` will require run time type information. It is the opinion of the authors that built in run time type information is not a notable burden if used appropriately, especially for smaller teams. And in this case it is also useful as a conventional way to communicate ideas, hence our use of it here. Any reflection system that can provide a unique ID for a type will suffice for the purposes of this book, feel free to use a custom one.
 }}
 
-This function is a relatively standard pattern of find, make it not extant, and return by using the iterator to prevent duplicate lookups while allowing us to check for existence. We use the hashcode of the component type as the key, and we use a shared pointer for safety and simplicity. Note that we return the exact type of the component manager, even if we have to downcast it, this is so the *user* can use the type specific `ComponentManager` interface allowing convient direct access to the component values.
+This function is a relatively standard pattern of find, make if not extant, and return by using the iterator to prevent duplicate lookups while allowing us to check for existence. We use the hashcode of the component type as the key, and we use a shared pointer for safety and simplicity. Note that we return the exact type of the component manager, even if we have to downcast it, this is so the *user* can use the type specific `ComponentManager` interface allowing convenient direct access to the component values.
 
 ```c++
 /*** USER CODE ***/
@@ -391,7 +391,7 @@ class World {
 }
 ```
 
-We now have a dynamic dispatch list, ironically an iteration of dispatches (of iterations). The difference being that this iteration is fixed in size dependent on the design of the systems in question, regardless of how many game objects there are. Because the iteration of game objects is still inside our dispateched system `update()` calls.
+We now have a dynamic dispatch list, ironically an iteration of dispatches (of iterations). The difference being that this iteration is fixed in size dependent on the design of the systems in question, regardless of how many game objects there are. Because the iteration of game objects is still inside our dispatched system `update()` calls.
 
 Now it would be nice to remove the need for users to define an entire class just to write an update method. Thankfully modern C++ has a tool that allows us to manipulate single methods like that quite nicely, the lambda. The ideal user code would then be something along the lines of:
 
@@ -506,7 +506,7 @@ for (auto& [e, v] : vel->values) {
 }
 ```
 
-A line less, more concise, and more algorithmically efficient.
+A line less, more concise, and more algorithmically efficient. A win on every front.
 
 ### Names
 
@@ -619,7 +619,7 @@ acl->values[foo] = { 1.0, 2.0 };
 pos->values[foo] = { 3.0, 4.0 };
 ```
 
-Now everything is named, but we can really use it to display useful data. For that, we need...
+Now everything is named, but we can't really use it to display useful data yet. For that, we need...
 
 ### Component Printers (and Has)
 
@@ -792,9 +792,9 @@ world.makeSystem("health-tick", [=](World* w) {
 });
 ```
 
-The above is perhaps a bit convoluted, but it has some nice properties. There are other valid designs with their own properties and users are encouraged to try their own. I've left the naïve solution as a comparison for the reader to try themselves.
+The above is perhaps a bit convoluted, but it has some nice properties. There are other valid designs with their own properties and users are encouraged to try their own. By using this solution I've left the naïve solution as a comparison for the reader to try themselves.
 
-However, the part we are actually interested in is the "death" of our unit. This is of course a common pattern, being able to remove one's own component is an important paradigm, especially for temporary components like sound effects, animations, and other timed information. However in this situation we would also like to actually kill the whole entity in this situation. This needs a new feature.
+However, the part we are actually interested in is the "death" of our unit. This is of course a common pattern, being able to remove one's own component is an important paradigm, especially for temporary components like sound effects, animations, and other timed information. However in this situation we would also like to actually kill the whole entity, there are multiple ways of doing this, but for now we'll go for the simplest, which requires a new feature.
 
 ```c++
 class World {
@@ -831,7 +831,7 @@ We'll have to remember that this invalidates iterators on the entity. And deal w
 
 ### Ergonomics I Complete
 
-And with that we have completed the basic trinity.
+And with that we have added a number of useful ergonomics improvements.
 
 - [Current Library](0e_ergonomics1/dsecs_0e.hpp)
 - [Current Example](0e_ergonomics1/example_0e.cpp)
@@ -852,7 +852,7 @@ And with that we have completed the basic trinity.
 
 ## API Stability
 
-Currently parts of our implementation implictly form part of our API. To enable future improvements we'll need to stablize our API. We will also take this oppertunity to reorganize some aspects of it.
+Currently parts of our implementation implicitly form part of our API. To enable future improvements we'll need to stabilize our API. We will also take this opportunity to reorganize some aspects of it.
 
 ### Actual Component API
 
@@ -879,7 +879,7 @@ struct ComponentManager final : ComponentManagerBase {
 }
 ```
 
-For the moment this interface is relatively simple. However some operations, especially `set()` and `del()`, may need additional functionality in the future. We also distinguish between `get()` and `mut()`, seperating out the `at()` overload, so that we can make distinctions between possible writes and pure reads.
+For the moment this interface is relatively simple. However some operations, especially `set()` and `del()`, may need additional functionality in the future. We also distinguish between `get()` and `mut()`, separating out the `at()` overload, so that we can make distinctions between possible writes and pure reads.
 
 ### Actual System API
 

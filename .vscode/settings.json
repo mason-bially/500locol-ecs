@@ -92,6 +92,7 @@
         "shared_mutex": "cpp",
         "semaphore": "cpp",
         "codecvt": "cpp",
-        "flat_map": "cpp"
+        "flat_map": "cpp",
+        "version": "cpp"
     }
 }

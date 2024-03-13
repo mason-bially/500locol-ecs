@@ -8,11 +8,25 @@
 #include <concepts>
 
 // dead simple ecs
-namespace dsecs {
+namespace dsecs1s {
     /* concepts forward declare */
     template <typename T>
     concept Streamable = requires(std::ostream &os, T value) {
         { os << value } -> std::convertible_to<std::ostream &>;
+    };
+
+    /* custom data structures */
+    template <typename T>
+    concept SparseKey = requires(T value) {
+        { value } -> std::convertible_to<size_t>;
+        { value == value } -> bool;
+    };
+    template<SparseKey TKey, typename TData>
+    struct SparseSet {
+        using TIndex = uint32_t;
+
+        std::vector<TIndex> indicies;
+        std::vector<std::tuple<TKey, TData>> data;
     };
 
     /* entity trinity */
@@ -30,31 +44,24 @@ namespace dsecs {
         virtual ~ComponentManagerBase() = default;
 
         virtual auto has(Entity e) const -> bool = 0;
-        virtual void del(Entity e) = 0;
-        
         virtual auto str(Entity e) const -> std::string = 0;
+        virtual void del(Entity e) = 0;
     };
 
     template<typename TComp>
-    struct ComponentManager final : ComponentManagerBase {
+    struct ComponentManager : ComponentManagerBase {
         std::unordered_map<Entity, TComp> values; // the actual array
 
         ComponentManager(std::string_view name)
             : ComponentManagerBase(name), values() { }
         virtual ~ComponentManager() = default;
 
-        virtual auto has(Entity e) const -> bool override final { return values.contains(e); }
-        virtual void del(Entity e) override final { values.erase(e); }
-
-        auto get(Entity e) const -> TComp const& { return values.at(e); }
-        auto mut(Entity e) -> TComp& { return values.at(e); }
-        void set(Entity e, TComp&& v) { values.insert_or_assign(e, v); }
-
         void with(Entity e, std::invocable<TComp&> auto chain) {
             if (auto it = values.find(e); it != values.end())
                 chain(it->second); // reuse the found iterator/lookup
         }
 
+        virtual auto has(Entity e) const -> bool override { return values.contains(e); }
         virtual auto str(Entity e) const -> std::string override {
             if (auto it = values.find(e); it != values.end())
                 if constexpr (Streamable<TComp>) {
@@ -66,6 +73,7 @@ namespace dsecs {
             else
                 return "<NULL>";
         }
+        virtual void del(Entity e) override { values.erase(e); }
     };
 
     /* system trinity */

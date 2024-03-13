@@ -1,5 +1,5 @@
 CPPOPTS = select({
-    "@bazel_tools//src/conditions:windows": ["/std:c++23"],
+    "@bazel_tools//src/conditions:windows": ["/std:c++latest"],
     "//conditions:default": [
         "-std=c++23"
     ],
@@ -38,6 +38,7 @@ cc_binary(
     + ["dsecs.hpp",
         "03_trinity/dsecs_03.hpp",
         "0e_ergonomics1/dsecs_0e.hpp",
+        "1s_sparsemap/dsecs_1s.hpp",
         "9z_zero/dsecs_9z.hpp"
     ],
     copts = CPPOPTS,
@@ -56,6 +57,13 @@ cc_binary(
 cc_binary(
     name = "example_0e_ergonomics",
     srcs = ["0e_ergonomics1/dsecs_0e.hpp", "0e_ergonomics1/example_0e.cpp"],
+    deps = [":compat"],
+    copts = CPPOPTS,
+)
+
+cc_binary(
+    name = "example_1s_sparsemap",
+    srcs = ["1s_sparsemap/dsecs_1s.hpp", "1s_sparsemap/example_1s.cpp"],
     deps = [":compat"],
     copts = CPPOPTS,
 )

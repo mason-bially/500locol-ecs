@@ -22,19 +22,19 @@ boost_deps()
 
 git_repository(
     name = "benchmark",
-    remote = "git@github.com:google/benchmark.git",
+    remote = "https://github.com/google/benchmark.git",
     commit = "d572f4777349d43653b21d6c2fc63020ab326db2",
     shallow_since = "1668175263 +0000"
 )
 git_repository(
     name = "flecs",
-    remote = "git@github.com:SanderMertens/flecs.git",
+    remote = "https://github.com/SanderMertens/flecs.git",
     commit = "0fab02f47f330b863a67a8e253ceba4956861ef6",
     shallow_since = "1681676287 -0700"
 )
 new_git_repository(
     name = "pico",
-    remote = "git@github.com:empyreanx/pico_headers.git",
+    remote = "https://github.com/empyreanx/pico_headers.git",
     commit = "20e19aa5447d016bbebc25dba5f68b48d56b8ef2",
     shallow_since = "1682712996 -0400",
     build_file_content = """
@@ -47,7 +47,7 @@ cc_library(
 )
 new_git_repository(
     name = "entt",
-    remote = "git@github.com:skypjack/entt.git",
+    remote = "https://github.com/skypjack/entt.git",
     commit = "fef921132cae7588213d0f9bcd2fb9c8ffd8b7fc",
     shallow_since = "1669969760 +0100",
     build_file_content = """

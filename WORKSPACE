@@ -26,11 +26,19 @@ git_repository(
     commit = "d572f4777349d43653b21d6c2fc63020ab326db2",
     shallow_since = "1668175263 +0000"
 )
-git_repository(
+new_git_repository(
     name = "flecs",
     remote = "https://github.com/SanderMertens/flecs.git",
     commit = "0fab02f47f330b863a67a8e253ceba4956861ef6",
-    shallow_since = "1681676287 -0700"
+    shallow_since = "1681676287 -0700",
+    build_file_content = """
+cc_library(
+    name = "flecs",
+    visibility = ["//visibility:public"],
+    hdrs = ["flecs.h"],
+    srcs = ["flecs.c"],
+)
+    """,
 )
 new_git_repository(
     name = "pico",

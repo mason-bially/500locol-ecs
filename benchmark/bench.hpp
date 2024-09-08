@@ -57,7 +57,7 @@ inline void updateData(DataComponent& data, TimeDelta dt) {
     data.thingy++;
     data.dingy += 0.0001 * static_cast<double>(dt);
     data.mingy = !data.mingy;
-    std::string stringy = fmt::format(FMT_STRING("{:4.2f}"), data.dingy);
+    std::string stringy = std::format("{:4.2f}", data.dingy);
     std::char_traits<char>::copy(data.stringy, stringy.data(), std::min(stringy.length(), DataComponent::StringyMaxLength));
 }
 

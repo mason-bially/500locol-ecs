@@ -19,7 +19,7 @@ namespace dsecs1s {
     template <typename T>
     concept SparseKey = requires(T value) {
         { value } -> std::convertible_to<size_t>;
-        { value == value } -> bool;
+        { value == value } -> std::convertible_to<bool>;
     };
     template<SparseKey TKey, typename TData>
     struct SparseSet {

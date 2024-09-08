@@ -870,6 +870,8 @@ struct ComponentManager /* added */ final : ComponentManagerBase {
 
 By using final we ensure the compiler has all the hints we can give it that this virtual function should be de-virtualized when called on the derived type. Which is the type users will be using to interact directly with components. 
 
+And now we can extend it with the non-virtual parts of the interface. The ones that require knowing the final type of the component to use anyway.
+
 ```c++
 template<typename TComp>
 struct ComponentManager final : ComponentManagerBase {
@@ -879,7 +881,12 @@ struct ComponentManager final : ComponentManagerBase {
 }
 ```
 
-For the moment this interface is relatively simple. However some operations, especially `set()` and `del()`, may need additional functionality in the future. We also distinguish between `get()` and `mut()`, separating out the `at()` overload, so that we can make distinctions between possible writes and pure reads.
+For the moment this interface is relatively simple. However some operations, especially `set()` and `del()`, may need additional functionality in the future. We also distinguish between `get()` and `mut()`, separating out the `at()` overload, so that we can in the future make distinctions between possible writes and pure reads.
+
+{{
+TODO FOOTNOTE Especially vigilant readers might have a performance concern with our current definitions. The issue is in the scenario where we might not know, when getting the value, whether we plan to modify it or not we would have to use `get()` and then conditionally `set()`. At the moment the cost of always calling `mut()` isn't an issue, but in a possible future scenario where `mut()` (and `set()`!) are doing extra work to handle mutations, triggering spurious ones would be something we might want to avoid. The concern then being that our current `set()` would have to re-lookup our entity, which is an especially egregious cost. Rest assured that these definitions are merely working ones for now, and future data structure improvements will fix the inefficent `set()`.
+}}
+
 
 ### Actual System API
 
@@ -888,6 +895,22 @@ Before we can implement improvements to our access to components, we first need 
 Another issue is our inability to forward important information from our update call, like the delta time for the update.
 
 To do this we will use 
+
+### Multi-Component API
+
+Finally we get to our objective here, multi-component iteration.
+
+## Dealing with the Iterating Two Vectors Problem
+
+Work towards a sparse map by starting with sorted vectors with hashmap entity indexing. Focus on the "system iteration" performance metrics.
+
+## Dealing with Holes
+
+I think the next step is often dealing with holes? Need to make an excuse to have a sparse structure for this to come up and make our own entity wrapper type.
+
+## Sparse Maps
+
+Discusion of SoA and AoS and how to reorganize this again.
 
 ## Archetypes
 

@@ -1,6 +1,6 @@
 #include <benchmark/benchmark.h>
 #include "locol.hpp"
-#include "1s_ergonomics1/dsecs_1s.hpp"
+#include "1s_sparsemap/dsecs_1s.hpp"
 
 template<BenchmarkSettings bs>
 static void locol1s_A(benchmark::State& state) {

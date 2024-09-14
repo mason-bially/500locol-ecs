@@ -888,11 +888,11 @@ TODO FOOTNOTE Especially vigilant readers might have a performance concern with 
 }}
 
 
-### Actual System API
+### Query Iterator / Actual System API
 
 Before we can implement improvements to our access to components, we first need to have an actual API for systems to communicate the components they will be accessing. Preferably this interface will not involve repeated expression of our intent.
 
-Another issue is our inability to forward important information from our update call, like the delta time for the update.
+Another issue we should keep in mind is our inability to forward important information from our update call, like the delta time for the update.
 
 To do this we will use 
 
@@ -912,9 +912,13 @@ I think the next step is often dealing with holes? Need to make an excuse to hav
 
 Discusion of SoA and AoS and how to reorganize this again.
 
-## Archetypes
+### Sparse Maps
 
 It's time to address the elephant in the room. This is slow.
+
+## Archetypes
+
+Its still too slow! We need a paradigm shift.
 
 ```
 

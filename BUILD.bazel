@@ -62,8 +62,8 @@ cc_binary(
 )
 
 cc_binary(
-    name = "example_1s_sparsemap",
-    srcs = ["1s_sparsemap/dsecs_1s.hpp", "1s_sparsemap/example_1s.cpp"],
+    name = "example_3s_sparsemap",
+    srcs = ["3s_sparsemap/dsecs_3s.hpp", "3s_sparsemap/example_3s.cpp"],
     deps = [":compat"],
     copts = CPPOPTS,
 )

@@ -31,7 +31,7 @@ namespace dsecs {
 
         virtual auto has(Entity e) const -> bool = 0;
         virtual void del(Entity e) = 0;
-        
+
         virtual auto str(Entity e) const -> std::string = 0;
     };
 

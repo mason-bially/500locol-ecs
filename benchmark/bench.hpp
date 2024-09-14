@@ -3,7 +3,7 @@
 #include "compat/format"
 
 constexpr size_t BMEntities = 16 * 1024;
-constexpr size_t BMChurnIter = 100;
+constexpr size_t BMChurnIter = 20;
 
 using TimeDelta = double;
 

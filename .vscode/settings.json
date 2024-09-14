@@ -1,4 +1,5 @@
 {
+    "explorer.sortOrderLexicographicOptions": "unicode",
     "files.associations": {
         "iostream": "cpp",
         "ranges": "cpp",
@@ -93,6 +94,8 @@
         "semaphore": "cpp",
         "codecvt": "cpp",
         "flat_map": "cpp",
-        "version": "cpp"
-    }
+        "version": "cpp",
+        "*.ipp": "cpp"
+    },
+    "C_Cpp.intelliSenseEngine": "disabled"
 }

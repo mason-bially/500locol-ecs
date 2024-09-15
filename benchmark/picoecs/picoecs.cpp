@@ -122,8 +122,8 @@ static void picoecs_A(benchmark::State& state) {
 
 BENCHMARK(picoecs_A<BsUpdate>);
 BENCHMARK(picoecs_A<BsInit>);
-BENCHMARK(picoecs_A<BsExpand>)->Iterations(BMChurnIter);
-BENCHMARK(picoecs_A<BsChurn>)->Iterations(BMChurnIter);
+BENCHMARK(picoecs_A<BsExpand>);//->(BMChurnIter);
+BENCHMARK(picoecs_A<BsChurn>);//->(BMChurnIter);
 
 
 #define PICO_ECS_MAX_SYSTEMS 16

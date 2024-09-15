@@ -8,7 +8,7 @@
 #include <concepts>
 
 // dead simple ecs
-namespace dsecs3s {
+namespace dsecs1s {
     /* concepts forward declare */
     template <typename T>
     concept Streamable = requires(std::ostream &os, T value) {

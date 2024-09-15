@@ -910,7 +910,7 @@ I think the next step is often dealing with holes? Need to make an excuse to hav
 
 ## Sparse Maps
 
-Discusion of SoA and AoS and how to reorganize this again.
+Discussion of SoA and AoS and how to reorganize this again.
 
 ### Sparse Maps
 

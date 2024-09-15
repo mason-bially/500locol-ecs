@@ -64,4 +64,4 @@ static void locol03_A(benchmark::State& state) {
 
 BENCHMARK(locol03_A<BsUpdate>);
 BENCHMARK(locol03_A<BsInit>);
-BENCHMARK(locol03_A<BsExpand>)->Iterations(BMChurnIter);
+BENCHMARK(locol03_A<BsExpand>);//->(BMChurnIter);

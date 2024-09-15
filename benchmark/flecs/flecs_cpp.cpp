@@ -71,5 +71,5 @@ static void flecs_cpp_A(benchmark::State& state) {
 
 BENCHMARK(flecs_cpp_A<BsUpdate>);
 BENCHMARK(flecs_cpp_A<BsInit>);
-BENCHMARK(flecs_cpp_A<BsExpand>)->Iterations(BMChurnIter);
-BENCHMARK(flecs_cpp_A<BsChurn>)->Iterations(BMChurnIter);
+BENCHMARK(flecs_cpp_A<BsExpand>);//->(BMChurnIter);
+BENCHMARK(flecs_cpp_A<BsChurn>);//->(BMChurnIter);

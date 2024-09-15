@@ -9,5 +9,5 @@ static void locolcw_A(benchmark::State& state) {
 
 BENCHMARK(locolcw_A<BsUpdate>);
 BENCHMARK(locolcw_A<BsInit>);
-BENCHMARK(locolcw_A<BsExpand>)->Iterations(BMChurnIter);
-BENCHMARK(locolcw_A<BsChurn>)->Iterations(BMChurnIter);
+BENCHMARK(locolcw_A<BsExpand>);//->(BMChurnIter);
+BENCHMARK(locolcw_A<BsChurn>);//->(BMChurnIter);

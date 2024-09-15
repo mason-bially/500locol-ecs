@@ -9,5 +9,5 @@ static void locol0e_A(benchmark::State& state) {
 
 BENCHMARK(locol0e_A<BsUpdate>);
 BENCHMARK(locol0e_A<BsInit>);
-BENCHMARK(locol0e_A<BsExpand>)->Iterations(BMChurnIter);
-BENCHMARK(locol0e_A<BsChurn>)->Iterations(BMChurnIter);
+BENCHMARK(locol0e_A<BsExpand>);//->(BMChurnIter);
+BENCHMARK(locol0e_A<BsChurn>);//->(BMChurnIter);
